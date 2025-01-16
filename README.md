@@ -23,3 +23,10 @@ The audit path ensures that:
 
 ### Example Use Case:
 When downloading a file in chunks, the server provides an audit path for each chunk. The client computes hashes to verify the chunk against the root hash, ensuring the integrity of the downloaded data.
+
+### Also, you can view some usefull links on this on this topic:
+[Merkle-tree: How to check data integrity without full access?](https://habr.com/ru/articles/873718/) 
+
+[How Do Merkle Trees Work?](https://www.baeldung.com/cs/merkle-trees)
+
+
