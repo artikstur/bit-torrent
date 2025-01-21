@@ -5,18 +5,6 @@ namespace BitTorrent;
 
 class MerkleTree
 {
-    public class Node
-    {
-        public string Hash { get; set; }
-        public Node Left { get; set; }
-        public Node? Right { get; set; }
-
-        public Node(string hash)
-        {
-            Hash = hash;
-        }
-    }
-
     public Node Root { get; private set; }
     private readonly List<string> _leafHashes;
 
@@ -93,8 +81,7 @@ class MerkleTree
 
         return path;
     }
-
-
+    
     public bool VerifyBlock(string block, int index, List<string> auditPath)
     {
         string currentHash = ComputeHash(block);
