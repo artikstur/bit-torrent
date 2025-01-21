@@ -1,4 +1,4 @@
-namespace BitTorrent;
+namespace MerkleTree;
 
 internal class Node
 {

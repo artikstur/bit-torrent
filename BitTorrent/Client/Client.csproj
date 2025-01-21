@@ -8,8 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\BitTorrent\BitTorrent.csproj" />
-      <ProjectReference Include="..\Server\Server.csproj" />
+      <ProjectReference Include="..\MerkleTree\MerkleTree.csproj" />
     </ItemGroup>
 
 </Project>
