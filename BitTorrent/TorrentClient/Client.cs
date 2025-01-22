@@ -8,25 +8,29 @@ namespace TorrentClient;
 public class Client
 {
     private readonly Socket _listenerSocket;
+    private readonly Socket _senderSocket;
     private const int MaxTimeout = 5 * 60 * 1000;
-    private const int BroadcastPort = 6000;
+    private readonly int _broadCastPort;
     private readonly int _clientPort;
     private readonly List<FileMetaData> _clientFiles;
 
     // На вход принимает файлы, которые у него уже готовы под раздачу и файлы, которые он еще должен загрузить
     // TODO: Настроить выход клиента в сеть
-    public Client(List<FileMetaData> clientFiles, int clientPort)
+    public Client(List<FileMetaData> clientFiles, int broadCastPort, int clientPort)
     {
         _listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        _listenerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        _broadCastPort = broadCastPort;
         _clientPort = clientPort;
-        _listenerSocket.Bind(new IPEndPoint(IPAddress.Any, _clientPort));
-        _listenerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
+        _listenerSocket.Bind(new IPEndPoint(IPAddress.Any, _broadCastPort));
+        
+        _senderSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        _senderSocket.Bind(new IPEndPoint(IPAddress.Any, _clientPort));
     }
-
+    
     public async Task Start()
     {
-        _ = Task.Run(StartSharingFiles);
-        _ = Task.Run(DownloadFiles);
+        await Task.WhenAll(DownloadFiles(), StartSharingFiles());
     }
 
     private async Task StartSharingFiles()
@@ -35,18 +39,24 @@ public class Client
 
         while (true)
         {
+            // Отвечаем на запрос поиска пиров
             try
             {
-                var result = await _listenerSocket.ReceiveFromAsync(new ArraySegment<byte>(buffer),
-                    SocketFlags.None, new IPEndPoint(IPAddress.Any, BroadcastPort));
-                Console.WriteLine($"Получено сообщение");
+                while (true)
+                {
+                    // Заполнится данными, того кто постучался
+                    EndPoint senderEndPoint = new IPEndPoint(IPAddress.Any, 0);
+                    int receivedBytes = _listenerSocket.ReceiveFrom(buffer, ref senderEndPoint);
+                    string receivedMessage = Encoding.UTF8.GetString(buffer, 0, receivedBytes);
+                    
+                    // Console.WriteLine($"{_clientPort} Получил сообщение: \"{receivedMessage}\" от {senderEndPoint}");
 
-                if (result.RemoteEndPoint is not IPEndPoint remoteEndpoint) continue;
+                    string responseMessage = "PEER";
+                    byte[] responseBuffer = Encoding.UTF8.GetBytes(responseMessage);
 
-                var receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.ReceivedBytes);
-                Console.WriteLine($"Получено сообщение от {remoteEndpoint}: {receivedMessage}");
-
-                await HandleIncomingMessage(receivedMessage, remoteEndpoint);
+                    await _senderSocket.SendToAsync(responseBuffer, senderEndPoint);
+                    // Console.WriteLine($"Ответ отправлен: \"{responseMessage}\" обратно к {senderEndPoint}");
+                }
             }
             catch (Exception ex)
             {
@@ -55,45 +65,24 @@ public class Client
         }
     }
 
-    private async Task HandleIncomingMessage(string message, IPEndPoint remoteEndpoint)
-    {
-        if (message.StartsWith("DISCOVER_PEERS"))
-        {
-            // Формируем ответ, например, с информацией о текущем пире
-            var responseMessage = $"PEER_INFO:{_clientPort}";
-            var responseData = Encoding.UTF8.GetBytes(responseMessage);
-
-            await _listenerSocket.SendToAsync(new ArraySegment<byte>(responseData), SocketFlags.None, remoteEndpoint);
-            Console.WriteLine($"Ответ отправлен на {remoteEndpoint}: {responseMessage}");
-        }
-    }
-
     public void Stop()
     {
         _listenerSocket.Close();
     }
 
-    // TODO: Продумать как клиентов будет искать других в сети и как отбирать нужные файлы
     private async Task DownloadFiles()
     {
-        var udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-        await ConnectToPeers(udpSocket);
-        var name = $"PEER_INFO:{_clientPort}";
-        var content = Encoding.UTF8.GetBytes(name);
-        var helloPackage = CreatePackage(content);
-
-        await udpSocket.SendAsync(new ArraySegment<byte>(helloPackage), SocketFlags.None);
+        await ConnectToPeers();
     }
 
-    // Подключаемся ко всем пирам
-    private async Task ConnectToPeers(Socket udpSocket)
+    private async Task ConnectToPeers()
     {
-        var peers = await SearchPeers(udpSocket);
+        var peers = await SearchPeers();
         foreach (var peer in peers)
         {
             try
             {
-                await udpSocket.ConnectAsync(peer.Ip, peer.Port);
+                await _senderSocket.ConnectAsync(peer.Ip, peer.Port);
             }
             catch (SocketException ex)
             {
@@ -102,33 +91,34 @@ public class Client
         }
     }
 
-    // Находит всех пиров в сети
-    private async Task<List<ClientData>> SearchPeers(Socket udpSocket)
+    private async Task<List<ClientData>> SearchPeers()
     {
+        // Пир отправляет в сеть запрос, чтобы найти всех других пиров
         var peers = new List<ClientData>();
-        udpSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
+        _senderSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, true);
+        var broadcastEndpoint = new IPEndPoint(IPAddress.Broadcast, _broadCastPort);
 
-        var broadcastEndpoint = new IPEndPoint(IPAddress.Parse("255.255.255.255"), BroadcastPort);
-
-        var requestMessage = Encoding.UTF8.GetBytes("DISCOVER_PEERS");
-        await udpSocket.SendToAsync(new ArraySegment<byte>(requestMessage), SocketFlags.None, broadcastEndpoint);
+        var requestMessage = Encoding.UTF8.GetBytes($"DISCOVER_PEERS FROM {_clientPort}");
+        await _senderSocket.SendToAsync(new ArraySegment<byte>(requestMessage), broadcastEndpoint);
 
         var buffer = new byte[MaxPacketSize];
 
+        // Здесь пир получает инфу от каждого пира о нем, если он подключен к сети и складывает в список
         try
         {
             while (true)
             {
-                var result = await udpSocket.ReceiveMessageFromAsync(new ArraySegment<byte>(buffer), SocketFlags.None,
+                var peerMessage = await _senderSocket.ReceiveMessageFromAsync(new ArraySegment<byte>(buffer),
+                    SocketFlags.None,
                     new IPEndPoint(IPAddress.Any, 0));
-                var responseMessage = Encoding.UTF8.GetString(buffer, 0, result.ReceivedBytes);
-
-                var peerData = ParsePeerData(responseMessage, (IPEndPoint)result.RemoteEndPoint);
-                if (peerData == null || peers.Any(p => p.Ip.Equals(peerData.Ip) && p.Port == peerData.Port))
+                var responseMessage = Encoding.UTF8.GetString(buffer, 0, peerMessage.ReceivedBytes);
+        
+                var peerData = ParsePeerData(responseMessage, (IPEndPoint)peerMessage.RemoteEndPoint);
+                if (peerData == null)
                     continue;
 
                 peers.Add(peerData);
-                Console.WriteLine($"Найден пир: {peerData.Ip}:{peerData.Port}");
+                Console.WriteLine($"{_clientPort} нашел пира: {peerData.Ip}:{peerData.Port}");
             }
         }
         catch (SocketException ex)
@@ -141,19 +131,16 @@ public class Client
 
     private ClientData? ParsePeerData(string message, IPEndPoint remoteEndpoint)
     {
-        if (!message.StartsWith("PEER_INFO:")) return null;
-
-        var info = message.Substring("PEER_INFO:".Length).Split(',');
-        if (info.Length == 2 && int.TryParse(info[1], out var port))
+        if (!message.StartsWith("PEER")) 
+            return null;
+        if (remoteEndpoint.Port == _clientPort)
+            return null;
+        
+        return new ClientData
         {
-            return new ClientData
-            {
-                Ip = remoteEndpoint.Address,
-                Port = port
-            };
-        }
-
-        return null;
+            Ip = remoteEndpoint.Address,
+            Port = remoteEndpoint.Port
+        };
     }
 
     // Находит всех пиров, раздающих конкретный файл, в сети
