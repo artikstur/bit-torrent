@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MerkleTree", "MerkleTree\MerkleTree.csproj", "{90C5B37A-EE35-462E-8011-CF53423FE3D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{C553620B-8337-47C5-9D9A-9E01BEE40839}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentClient", "TorrentClient\TorrentClient.csproj", "{C553620B-8337-47C5-9D9A-9E01BEE40839}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
