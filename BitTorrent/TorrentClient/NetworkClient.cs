@@ -10,9 +10,12 @@ public class NetworkClient : INetworkClient
     private readonly int _broadcastPort;
     private readonly int _clientPort;
     private readonly IPEndPoint _broadcastEndPoint;
+    private List<ClientData> _clients = new();
+    private readonly List<FileMetaData> _clientFiles;
 
-    public NetworkClient()
+    public NetworkClient(List<FileMetaData> clientFiles)
     {
+        _clientFiles = clientFiles;
         _broadcastPort = 23234;
         _listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         _listenerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
@@ -29,7 +32,15 @@ public class NetworkClient : INetworkClient
     public async Task<EndPoint> Receive(byte[] buffer, EndPoint endPoint)
     {
         var result = await _listenerSocket.ReceiveFromAsync(buffer, endPoint);
+
         return result.RemoteEndPoint;
+    }
+
+    public async Task<EndPoint?> Receive(byte[] buffer, EndPoint endPoint, Func<byte[], bool> condition)
+    {
+        var result = await _listenerSocket.ReceiveFromAsync(buffer, endPoint);
+
+        return condition(buffer) ? result.RemoteEndPoint : null;
     }
 
     public async Task Send(EndPoint endPoint, PackageBuilder packageBuilder)
@@ -40,11 +51,12 @@ public class NetworkClient : INetworkClient
     }
 
     // TODO: Валидация ответа от пира. Нужно проверить какой он ответ вернул для безопасности
-    public async Task<List<ClientData>> SearchForPeers(byte[] buffer, PackageBuilder packageBuilder)
+    public async Task<List<ClientData>> SearchForPeers(byte[] buffer, PackageBuilder packageBuilder,
+        FileMetaData fileMetaData)
     {
         var peers = new List<ClientData>();
         var cancellationTokenSource = new CancellationTokenSource();
-        
+
         await Send(_broadcastEndPoint, packageBuilder);
 
         while (true)
@@ -55,13 +67,14 @@ public class NetworkClient : INetworkClient
 
             if (completedTask == receiveTask)
             {
-                var result = (IPEndPoint)await receiveTask;
+                var result = (IPEndPoint)(await receiveTask)!;
                 if (result.Port == _clientPort) continue;
 
-                peers.Add(new ClientData()
+                peers.Add(new ClientData
                 {
                     Ip = result.Address,
-                    Port = result.Port
+                    Port = result.Port,
+                    Updated = DateTime.UtcNow,
                 });
 
                 Console.WriteLine($"{_clientPort} нашел {result.Port}");
@@ -71,8 +84,9 @@ public class NetworkClient : INetworkClient
                 break;
             }
         }
-        
+
         Console.WriteLine("Поиск пиров завершен");
+        _clients = peers;
         return peers;
     }
 }
