@@ -4,9 +4,7 @@ var clients = new List<Client>();
 
 for (int i = 0; i < 10; i++)
 {
-    int clientPort = 12132 + i;  
-    var client = new Client(new List<FileMetaData>(), 
-        23232, clientPort);
+    var client = new Client(new List<FileMetaData>());
     clients.Add(client);
 }
 
