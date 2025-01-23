@@ -4,7 +4,8 @@ namespace TorrentClient;
 
 public interface INetworkClient
 {
-    Task<EndPoint> Receive(byte[] buffer, EndPoint endPoint);
+    Task<EndPoint?> ReceiveBroadcast(byte[] buffer);
+    Task<EndPoint> ReceiveClientMessage(byte[] buffer);
     Task Send(EndPoint endPoint, PackageBuilder packageBuilder);
-    Task<List<ClientData>> SearchForPeers(byte[] buffer, PackageBuilder packageBuilder, FileMetaData fileMetaData);
+    Task SearchForPeers(PackageBuilder packageBuilder);
 }

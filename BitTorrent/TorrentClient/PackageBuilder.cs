@@ -54,6 +54,13 @@ public class PackageBuilder
 
         return this;
     }
+    
+    public PackageBuilder WithCommand(CommandType commandType)
+    {
+        _package[CommandIndex] = (byte)commandType;
+
+        return this;
+    }
 
     public byte[] Build()
     {
