@@ -13,7 +13,7 @@ public class NetworkClient : INetworkClient
     private readonly int _clientPort;
     private readonly IPEndPoint _broadcastEndPoint;
 
-    public NetworkClient(List<FileMetaData> clientFiles)
+    public NetworkClient()
     {
         _broadcastPort = 23234;
 

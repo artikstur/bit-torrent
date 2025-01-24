@@ -1,34 +1,19 @@
 ﻿using TorrentClient;
 
 var clients = new List<Client>();
-var client1 = new Client(new List<FileMetaData>()
+var client1 = new Client(new Dictionary<string, FileMetaData>
 {
-    new ()
-    {
-        RootHash = "2",
-        FileStatus = FileStatus.Downloading
-    }
+    { "2", new FileMetaData() {FileStatus = FileStatus.Downloading}}
 });
 
-var client2 = new Client(new List<FileMetaData>{
-    new ()
-    {
-        RootHash = "2",
-        FileStatus = FileStatus.Sharing
-    },
-    new ()
-    {
-        RootHash = "232332",
-        FileStatus = FileStatus.Sharing
-    }
+var client2 = new Client(new Dictionary<string, FileMetaData>
+{
+    { "2", new FileMetaData() {FileStatus = FileStatus.Sharing}}
 });
 
-var client3 = new Client(new List<FileMetaData>{
-    new ()
-    {
-        RootHash = "2",
-        FileStatus = FileStatus.Sharing
-    }
+var client3 = new Client(new Dictionary<string, FileMetaData>
+{
+    { "2", new FileMetaData() {FileStatus = FileStatus.Sharing}}
 });
 
 clients.Add(client1);
