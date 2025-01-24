@@ -90,13 +90,12 @@ public class Client
                     return existingClients;
                 });
 
-            if (_fileProducers.TryGetValue(hash, out var clients))
+            if (!_fileProducers.TryGetValue(hash, out var clients)) continue;
+            
+            Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
+            foreach (var client in clients)
             {
-                Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
-                foreach (var client in clients)
-                {
-                    Console.WriteLine($"IP: {client.Ip}, Port: {client.Port}, Updated: {client.Updated}");
-                }
+                Console.WriteLine($"IP: {client.Ip}, Port: {client.Port}, Updated: {client.Updated}");
             }
         }
     }
@@ -108,11 +107,11 @@ public class Client
 
         foreach (var fileMetaData in filesInProcess)
         {
-            await SearchPeers(fileMetaData.Key, fileMetaData.Value);
+            await SearchPeers(fileMetaData.Key);
         }
     }
 
-    private async Task SearchPeers(string hash, FileMetaData fileMetaData)
+    private async Task SearchPeers(string hash)
     {
         await _networkClient.SearchForPeers(new PackageBuilder(100)
             .WithQuery(QueryType.Request)

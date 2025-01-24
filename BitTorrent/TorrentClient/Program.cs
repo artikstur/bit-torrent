@@ -3,17 +3,17 @@
 var clients = new List<Client>();
 var client1 = new Client(new Dictionary<string, FileMetaData>
 {
-    { "2", new FileMetaData() {FileStatus = FileStatus.Downloading}}
+    { "2", new FileMetaData {FileStatus = FileStatus.Downloading}}
 });
 
 var client2 = new Client(new Dictionary<string, FileMetaData>
 {
-    { "2", new FileMetaData() {FileStatus = FileStatus.Sharing}}
+    { "2", new FileMetaData {FileStatus = FileStatus.Sharing}}
 });
 
 var client3 = new Client(new Dictionary<string, FileMetaData>
 {
-    { "2", new FileMetaData() {FileStatus = FileStatus.Sharing}}
+    { "2", new FileMetaData {FileStatus = FileStatus.Sharing}}
 });
 
 clients.Add(client1);
