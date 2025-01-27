@@ -42,7 +42,7 @@ public class Client
         {
             var remoteEndPoint = await _networkClient.ReceiveClientMessage(buffer);
             if (remoteEndPoint is null) continue;
-
+            
             if (buffer.IsNeedBlock())
             {
                 var request = buffer.GetBlockPacketRequest();
@@ -69,7 +69,7 @@ public class Client
                 var request = buffer.GetBlockPacketResponse();
                 _ = Task.Run(() =>
                 {
-                    Console.WriteLine($"{request.BlockIndex}");
+                    Console.WriteLine($"Мне обратно пришел блок с номером {request.BlockIndex}");
                     if (_clientFiles.TryGetValue(request.Hash, out var fileData) &&
                         fileData.FileStatus == FileStatus.Downloading)
                     {
@@ -178,7 +178,7 @@ public class Client
     {
         if (!_fileProducers.TryGetValue(fileMetaData.RootHash, out var producers))
         {
-            Console.WriteLine("No producers.");
+            Console.WriteLine("Либо нет раздающих, либо перезагрузите приложение");
             return;
         }
 
@@ -201,6 +201,8 @@ public class Client
                 .WithPackageType(PackageType.Full)
                 .WithCommand(CommandType.NeedBlock)
                 .WithContent(Encoding.UTF8.GetBytes(fileMetaData.RootHash.CreateNeedBlockRequest(blockIndex))));
+
+        Console.WriteLine($"Я запросил у пира блок с индексом {blockIndex}");
     }
 
     private async Task SearchPeers(string hash)

@@ -1,20 +1,20 @@
 ﻿using MerkleTree;
 using TorrentClient;
 
+int blockSize = 1024;
 var sharingFile = new FileMetaData
 {
     FileStatus = FileStatus.Sharing,
     FilePath = @"C:\Users\artur\OneDrive\Desktop\building.png",
-    BlockSize = 1024,
+    BlockSize = blockSize,
 };
 
-int blockSize = 512;
 var blocks = FileWorker.SplitFileIntoBlocks(sharingFile, blockSize);
 var fileSize = FileWorker.GetFileSize(sharingFile);
 
 var merkleTree = new ByteMerkleTree(blocks);
 var auditPath = merkleTree.GetAuditPath(2);
-var isValid = merkleTree.VerifyBlock(blocks[2], 2, auditPath);
+var isValid = merkleTree.VerifyBlock(blocks[1], 1, auditPath);
 
 sharingFile.Blocks = blocks;
 sharingFile.TotalBlocks = blocks.Length;
