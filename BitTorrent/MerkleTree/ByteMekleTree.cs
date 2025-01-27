@@ -96,6 +96,22 @@ public class ByteMerkleTree
 
         return currentHash.SequenceEqual(Root.Hash);
     }
+    
+    public bool VerifyBlock(byte[] block, int index, List<byte[]> auditPath, byte[] roothash)
+    {
+        byte[] currentHash = ComputeHash(block);
+
+        foreach (var siblingHash in auditPath)
+        {
+            currentHash = index % 2 == 0
+                ? ComputeHash(CombineHashes(currentHash, siblingHash))
+                : ComputeHash(CombineHashes(siblingHash, currentHash));
+
+            index /= 2;
+        }
+
+        return currentHash.SequenceEqual(roothash);
+    }
 
     private byte[] CombineHashes(byte[] left, byte[] right)
     {

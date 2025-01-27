@@ -29,12 +29,37 @@ public static class PackageHelper
     {
         return buffer[CommandIndex] == (byte)CommandType.DiscoverPeers;
     }
+    
+    public static bool IsNeedBlock(this byte[] buffer)
+    {
+        return buffer[CommandIndex] == (byte)CommandType.NeedBlock;
+    }
 
     public static bool IsBePeer(this byte[] buffer)
     {
         return buffer[CommandIndex] == (byte)CommandType.BePeer;
     }
 
+    public static BlockPacketRequest GetBlockPacketRequest(this byte[] buffer)
+    {
+        var message = Encoding.UTF8.GetString(buffer).Trim('\0');
+
+        var jsonStartIndex = message.IndexOf('{');
+        if (jsonStartIndex == -1)
+            throw new ArgumentException("Неверный формат");
+
+        var jsonPart = message.Substring(jsonStartIndex);
+
+        var jsonEndIndex = jsonPart.LastIndexOf('}');
+        if (jsonEndIndex == -1)
+            throw new ArgumentException("Неверный формат");
+
+        jsonPart = jsonPart.Substring(0, jsonEndIndex + 1);
+
+        return JsonSerializer.Deserialize<BlockPacketRequest>(jsonPart) 
+               ?? throw new ArgumentException("Неверный формат");
+    }
+    
     public static string GetRootHashFromResponse(this byte[] buffer)
     {
         var message = Encoding.UTF8.GetString(buffer).Trim('\0');

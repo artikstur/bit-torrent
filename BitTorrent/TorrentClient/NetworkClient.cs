@@ -37,10 +37,10 @@ public class NetworkClient : INetworkClient
         return IsSelf(result.RemoteEndPoint) ? null : result.RemoteEndPoint;
     }
 
-    public async Task<EndPoint> ReceiveClientMessage(byte[] buffer)
+    public async Task<EndPoint?> ReceiveClientMessage(byte[] buffer)
     {
         var result = await _clientSocket.ReceiveFromAsync(buffer, new IPEndPoint(IPAddress.Any, 0));
-        return result.RemoteEndPoint;
+        return IsSelf(result.RemoteEndPoint) ? null : result.RemoteEndPoint;
     }
 
     public async Task Send(EndPoint endPoint, PackageBuilder packageBuilder)

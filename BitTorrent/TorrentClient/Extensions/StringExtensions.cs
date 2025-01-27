@@ -25,4 +25,15 @@ public static class StringExtensions
 
         return JsonSerializer.Serialize(peerMessage);
     }
+    
+    public static string CreateNeedBlockRequest(this string hash, int blockIndex)
+    {
+        var peerMessage = new BlockPacketRequest()
+        {
+            Hash = hash,
+            BlockIndex = blockIndex
+        };
+
+        return JsonSerializer.Serialize(peerMessage);
+    }
 }

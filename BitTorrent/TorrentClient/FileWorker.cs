@@ -2,25 +2,38 @@ namespace TorrentClient;
 
 public static class FileWorker
 {
-    public static List<byte[]> SplitFileIntoBlocks(FileMetaData fileMetaData)
+    public static List<byte[]> SplitFileIntoBlocks(FileMetaData fileMetaData, int blockSize)
     {
-        var bytesParts = new List<byte[]>();
+        List<byte[]> blocks = new List<byte[]>();
 
-        using var fileStream = new FileStream(fileMetaData.FilePath, FileMode.Open, FileAccess.Read);
-        var buffer = new byte[fileMetaData.BlockSize];
-
-        while (true)
-        {
-            int bytesRead = fileStream.Read(buffer, 0, buffer.Length);
-            if (bytesRead == 0) break;
+        using FileStream fileStream = new FileStream(fileMetaData.FilePath, FileMode.Open, FileAccess.Read);
+        byte[] buffer = new byte[blockSize];
+        int bytesRead;
             
-            var block = bytesRead < buffer.Length
-                ? buffer.Take(bytesRead).ToArray()
-                : (byte[])buffer.Clone();
-
-            bytesParts.Add(block);
+        while ((bytesRead = fileStream.Read(buffer, 0, blockSize)) > 0)
+        {
+            if (bytesRead < blockSize)
+            {
+                byte[] actualBlock = new byte[bytesRead];
+                Array.Copy(buffer, actualBlock, bytesRead);
+                blocks.Add(actualBlock);
+            }
+            else
+            {
+                blocks.Add(buffer);
+            }
         }
 
-        return bytesParts;
+        return blocks;
+    }
+    
+    public static long GetFileSize(FileMetaData fileMetaData)
+    {
+        if (File.Exists(fileMetaData.FilePath))
+        {
+            return new FileInfo(fileMetaData.FilePath).Length;
+        }
+        
+        throw new FileNotFoundException("Файл не найден", fileMetaData.FilePath);
     }
 }
