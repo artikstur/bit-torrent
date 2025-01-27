@@ -8,7 +8,8 @@ var sharingFile = new FileMetaData
     BlockSize = 1024,
 };
 
-var blocks = FileWorker.SplitFileIntoBlocks(sharingFile, 1024);
+int blockSize = 512;
+var blocks = FileWorker.SplitFileIntoBlocks(sharingFile, blockSize);
 var fileSize = FileWorker.GetFileSize(sharingFile);
 
 var merkleTree = new ByteMerkleTree(blocks);
@@ -16,7 +17,7 @@ var auditPath = merkleTree.GetAuditPath(2);
 var isValid = merkleTree.VerifyBlock(blocks[2], 2, auditPath);
 
 sharingFile.Blocks = blocks;
-sharingFile.TotalBlocks = blocks.Count;
+sharingFile.TotalBlocks = blocks.Length;
 sharingFile.FileSize = fileSize;
 sharingFile.RootHash = BitConverter.ToString(merkleTree.Root.Hash);
 
@@ -29,9 +30,10 @@ var client1 = new Client(new Dictionary<string, FileMetaData>
         {
             FileStatus = FileStatus.Downloading,
             FilePath = @"C:\Users\artur\OneDrive\Desktop\test-torrent\building.png",
-            BlockSize = 1024,
-            TotalBlocks = blocks.Count,
-            RootHash = sharingFile.RootHash
+            BlockSize = blockSize,
+            TotalBlocks = blocks.Length,
+            RootHash = sharingFile.RootHash,
+            Blocks = new byte[blocks.Length][],
         }
     }
 });

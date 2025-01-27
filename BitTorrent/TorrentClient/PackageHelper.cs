@@ -39,6 +39,11 @@ public static class PackageHelper
     {
         return buffer[CommandIndex] == (byte)CommandType.BePeer;
     }
+    
+    public static bool IsGiveBlock(this byte[] buffer)
+    {
+        return buffer[CommandIndex] == (byte)CommandType.GiveBlock;
+    }
 
     public static BlockPacketRequest GetBlockPacketRequest(this byte[] buffer)
     {
@@ -57,6 +62,26 @@ public static class PackageHelper
         jsonPart = jsonPart.Substring(0, jsonEndIndex + 1);
 
         return JsonSerializer.Deserialize<BlockPacketRequest>(jsonPart) 
+               ?? throw new ArgumentException("Неверный формат");
+    }
+    
+    public static BlockPacketResponse GetBlockPacketResponse(this byte[] buffer)
+    {
+        var message = Encoding.UTF8.GetString(buffer).Trim('\0');
+
+        var jsonStartIndex = message.IndexOf('{');
+        if (jsonStartIndex == -1)
+            throw new ArgumentException("Неверный формат");
+
+        var jsonPart = message.Substring(jsonStartIndex);
+
+        var jsonEndIndex = jsonPart.LastIndexOf('}');
+        if (jsonEndIndex == -1)
+            throw new ArgumentException("Неверный формат");
+
+        jsonPart = jsonPart.Substring(0, jsonEndIndex + 1);
+
+        return JsonSerializer.Deserialize<BlockPacketResponse>(jsonPart) 
                ?? throw new ArgumentException("Неверный формат");
     }
     

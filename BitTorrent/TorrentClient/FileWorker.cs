@@ -2,30 +2,25 @@ namespace TorrentClient;
 
 public static class FileWorker
 {
-    public static List<byte[]> SplitFileIntoBlocks(FileMetaData fileMetaData, int blockSize)
+    public static byte[][] SplitFileIntoBlocks(FileMetaData fileMetaData, int blockSize)
     {
-        List<byte[]> blocks = new List<byte[]>();
+        long fileSize = new FileInfo(fileMetaData.FilePath).Length;
+        int totalBlocks = (int)Math.Ceiling((double)fileSize / blockSize);
+        
+        byte[][] blocks = new byte[totalBlocks][];
 
         using FileStream fileStream = new FileStream(fileMetaData.FilePath, FileMode.Open, FileAccess.Read);
-        byte[] buffer = new byte[blockSize];
-        int bytesRead;
-            
-        while ((bytesRead = fileStream.Read(buffer, 0, blockSize)) > 0)
+
+        for (int i = 0; i < totalBlocks; i++)
         {
-            if (bytesRead < blockSize)
-            {
-                byte[] actualBlock = new byte[bytesRead];
-                Array.Copy(buffer, actualBlock, bytesRead);
-                blocks.Add(actualBlock);
-            }
-            else
-            {
-                blocks.Add(buffer);
-            }
+            int currentBlockSize = (int)Math.Min(blockSize, fileSize - fileStream.Position);
+            blocks[i] = new byte[currentBlockSize];
+            fileStream.Read(blocks[i], 0, currentBlockSize);
         }
 
         return blocks;
     }
+
     
     public static long GetFileSize(FileMetaData fileMetaData)
     {

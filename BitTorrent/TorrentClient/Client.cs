@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using TorrentClient.Extensions;
 using static TorrentClient.PackageHelper;
@@ -28,32 +29,59 @@ public class Client
     {
         var broadcastTask = Task.Run(AnswerAsPeer);
         var clientTask = Task.Run(DeterminePeer);
-        var sendBlocksTask = Task.Run(SendBlocks);
+        var sendBlocksTask = Task.Run(ProcessClientMessage);
 
         await Task.WhenAll(broadcastTask, clientTask, sendBlocksTask);
     }
-    
+
     // TODO: Добавить auditpath в ответ вместе с блоком
-    private async Task SendBlocks()
+    private async Task ProcessClientMessage()
     {
         var buffer = new byte[MaxPacketSize];
         while (true)
         {
             var remoteEndPoint = await _networkClient.ReceiveClientMessage(buffer);
             if (remoteEndPoint is null) continue;
-            
-            var a = Encoding.UTF8.GetString(buffer);
-            if (!buffer.IsNeedBlock()) continue;
-            var request = buffer.GetBlockPacketRequest();
 
-            if (!_clientFiles.TryGetValue(request.Hash, out var fileData)
-                || fileData.FileStatus != FileStatus.Sharing) return;
+            if (buffer.IsNeedBlock())
+            {
+                var request = buffer.GetBlockPacketRequest();
+                _ = Task.Run(async () =>
+                {
+                    if (!_clientFiles.TryGetValue(request.Hash, out var fileData)
+                        || fileData.FileStatus != FileStatus.Sharing) return;
 
-            await _networkClient.Send(remoteEndPoint, new PackageBuilder(MaxSizeOfContent)
-                .WithQuery(QueryType.Response)
-                .WithCommand(CommandType.GiveBlock)
-                .WithPackageType(PackageType.Partial)
-                .WithContent(fileData.Blocks[request.BlockIndex]));
+                    await _networkClient.Send(remoteEndPoint, new PackageBuilder(MaxSizeOfContent)
+                        .WithQuery(QueryType.Response)
+                        .WithCommand(CommandType.GiveBlock)
+                        .WithPackageType(PackageType.Partial)
+                        .WithContent(Encoding.UTF8.GetBytes(request.Hash.CreateGivePacketResponse(
+                            request.BlockIndex, fileData.Blocks[request.BlockIndex]))));
+
+                    Console.WriteLine($"Я отправил блок номер {request.BlockIndex}");
+                });
+
+                continue;
+            }
+
+            if (buffer.IsGiveBlock())
+            {
+                var request = buffer.GetBlockPacketResponse();
+                _ = Task.Run(() =>
+                {
+                    Console.WriteLine($"{request.BlockIndex}");
+                    if (_clientFiles.TryGetValue(request.Hash, out var fileData) &&
+                        fileData.FileStatus == FileStatus.Downloading)
+                    {
+                        lock (fileData.Blocks)
+                        {
+                            fileData.Blocks[request.BlockIndex] = request.Block;
+                        }
+                    }
+                });
+
+                continue;
+            }
         }
     }
 
@@ -125,7 +153,7 @@ public class Client
             }
         }
     }
-    
+
     // TODO: разобраться с Delay
     private async Task DownloadFiles()
     {
@@ -148,35 +176,24 @@ public class Client
     // TODO: Валидировать данные
     private async Task StartDownloading(FileMetaData fileMetaData)
     {
-        var blocks = new byte[fileMetaData.TotalBlocks][];
-
         if (!_fileProducers.TryGetValue(fileMetaData.RootHash, out var producers))
         {
             Console.WriteLine("No producers.");
             return;
         }
 
-        var downloadTasks = new List<Task>();
-
         foreach (var producer in producers)
         {
-            for (int blockIndex = 0; blockIndex < fileMetaData.TotalBlocks - 1; blockIndex++)
+            for (int blockIndex = 0; blockIndex < fileMetaData.TotalBlocks; blockIndex++)
             {
-                if (blocks[blockIndex] != null) continue;
+                if (fileMetaData.Blocks[blockIndex] != null) continue;
 
-                downloadTasks.Add(Task.Run(async () =>
-                {
-                    GetBlockFromProducer(producer, fileMetaData, blockIndex);
-                }));
+                AskBlockFromProducer(producer, fileMetaData, blockIndex);
             }
         }
-
-        await Task.WhenAll(downloadTasks);
-
-        Console.WriteLine("Еее я все скачал");
     }
 
-    private async Task GetBlockFromProducer(ClientData producer, FileMetaData fileMetaData, int blockIndex)
+    private async Task AskBlockFromProducer(ClientData producer, FileMetaData fileMetaData, int blockIndex)
     {
         await _networkClient.Send(new IPEndPoint(producer.Ip, producer.Port),
             new PackageBuilder(MaxSizeOfContent)

@@ -5,11 +5,11 @@ namespace MerkleTree;
 public class ByteMerkleTree
 {
     public Node Root { get; private set; }
-    private readonly List<byte[]> _leafHashes;
+    private readonly byte[][] _leafHashes;
 
-    public ByteMerkleTree(List<byte[]> dataBlocks)
+    public ByteMerkleTree(byte[][] dataBlocks)
     {
-        _leafHashes = dataBlocks.Select(ComputeHash).ToList();
+        _leafHashes = dataBlocks.Select(ComputeHash).ToArray();
         BuildTree();
     }
 

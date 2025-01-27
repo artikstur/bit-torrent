@@ -16,5 +16,5 @@ public class FileMetaData
     public int AlreadyDownloaded { get; set; }
     // Путь на текущем компьютере (Не должен передаваться другим клиентам)
     public string FilePath { get; set; }
-    public List<byte[]> Blocks { get; set; }
+    public byte[][] Blocks { get; set; } 
 }
