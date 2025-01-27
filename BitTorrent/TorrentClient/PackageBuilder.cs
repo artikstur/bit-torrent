@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace TorrentClient;
 
 using static PackageHelper;

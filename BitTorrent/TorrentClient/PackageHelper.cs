@@ -5,8 +5,8 @@ namespace TorrentClient;
 
 public static class PackageHelper
 {
-    public const int MaxSizeOfContent = 242;
-    public const int MaxPacketSize = 256;
+    public const int MaxSizeOfContent = 1024;
+    public const int MaxPacketSize = 1038;
     public const int MaxFreeBytes = MaxPacketSize - MaxSizeOfContent;
     public const int CommandIndex = 12;
     public const int PackageTypeIndex = 11;

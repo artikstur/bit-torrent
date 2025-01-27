@@ -43,7 +43,7 @@ public class Client
             var hash = buffer.GetRootHashFromRequest();
             if (!_clientFiles.TryGetValue(hash, out var file)) continue;
 
-            await _networkClient.Send(remoteEndPoint, new PackageBuilder(100)
+            await _networkClient.Send(remoteEndPoint, new PackageBuilder(1024)
                 .WithQuery(QueryType.Response)
                 .WithCommand(CommandType.BePeer)
                 .WithPackageType(PackageType.Full)
@@ -113,7 +113,7 @@ public class Client
 
     private async Task SearchPeers(string hash)
     {
-        await _networkClient.SearchForPeers(new PackageBuilder(100)
+        await _networkClient.SearchForPeers(new PackageBuilder(1024)
             .WithQuery(QueryType.Request)
             .WithPackageType(PackageType.Full)
             .WithCommand(CommandType.DiscoverPeers)

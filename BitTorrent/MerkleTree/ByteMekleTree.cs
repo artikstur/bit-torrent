@@ -1,14 +1,13 @@
 using System.Security.Cryptography;
-using System.Text;
 
 namespace MerkleTree;
 
-class MerkleTree
+public class ByteMerkleTree
 {
     public Node Root { get; private set; }
-    private readonly List<string> _leafHashes;
+    private readonly List<byte[]> _leafHashes;
 
-    public MerkleTree(List<string> dataBlocks)
+    public ByteMerkleTree(List<byte[]> dataBlocks)
     {
         _leafHashes = dataBlocks.Select(ComputeHash).ToList();
         BuildTree();
@@ -32,7 +31,7 @@ class MerkleTree
                     : null;
 
                 var parentHash = right != null
-                    ? ComputeHash(left.Hash + right.Hash)
+                    ? ComputeHash(CombineHashes(left.Hash, right.Hash))
                     : left.Hash;
 
                 parentNodes.Add(new Node(parentHash) { Left = left, Right = right });
@@ -44,9 +43,9 @@ class MerkleTree
         Root = nodes.First();
     }
 
-    public List<string> GetAuditPath(int index)
+    public List<byte[]> GetAuditPath(int index)
     {
-        var path = new List<string>();
+        var path = new List<byte[]>();
         var nodes = _leafHashes
             .Select(hash => new Node(hash))
             .ToList();
@@ -58,7 +57,7 @@ class MerkleTree
             {
                 var left = nodes[i];
                 var right = i + 1 < nodes.Count ? nodes[i + 1] : null;
-                var parentHash = right != null ? ComputeHash(left.Hash + right.Hash) : left.Hash;
+                var parentHash = right != null ? ComputeHash(CombineHashes(left.Hash, right.Hash)) : left.Hash;
 
                 parentNodes.Add(new Node(parentHash) { Left = left, Right = right });
 
@@ -81,27 +80,46 @@ class MerkleTree
 
         return path;
     }
-    
-    public bool VerifyBlock(string block, int index, List<string> auditPath)
+
+    public bool VerifyBlock(byte[] block, int index, List<byte[]> auditPath)
     {
-        string currentHash = ComputeHash(block);
+        byte[] currentHash = ComputeHash(block);
 
         foreach (var siblingHash in auditPath)
         {
             currentHash = index % 2 == 0
-                ? ComputeHash(currentHash + siblingHash)
-                : ComputeHash(siblingHash + currentHash);
+                ? ComputeHash(CombineHashes(currentHash, siblingHash))
+                : ComputeHash(CombineHashes(siblingHash, currentHash));
 
             index /= 2;
         }
 
-        return currentHash == Root.Hash;
+        return currentHash.SequenceEqual(Root.Hash);
     }
-    
-    public string ComputeHash(string data)
+
+    private byte[] CombineHashes(byte[] left, byte[] right)
+    {
+        var combined = new byte[left.Length + right.Length];
+        Buffer.BlockCopy(left, 0, combined, 0, left.Length);
+        Buffer.BlockCopy(right, 0, combined, left.Length, right.Length);
+        return combined;
+    }
+
+    public byte[] ComputeHash(byte[] data)
     {
         using var sha256 = SHA256.Create();
-        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
-        return Convert.ToBase64String(hash);
+        return sha256.ComputeHash(data);
+    }
+
+    public class Node
+    {
+        public byte[] Hash { get; }
+        public Node Left { get; set; }
+        public Node Right { get; set; }
+
+        public Node(byte[] hash)
+        {
+            Hash = hash;
+        }
     }
 }
