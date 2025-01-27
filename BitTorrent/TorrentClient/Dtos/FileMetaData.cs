@@ -1,7 +1,4 @@
-using MerkleTree;
-
 namespace TorrentClient;
-using static PackageHelper;
 
 public class FileMetaData
 {
@@ -12,9 +9,6 @@ public class FileMetaData
     public long FileSize { get; set; }
     public long BlockSize { get; set; }
     public long TotalBlocks { get; set; } 
-    // Если FileStatus = Sharing, то AlreadyDownloaded = FileSize
-    public int AlreadyDownloaded { get; set; }
-    // Путь на текущем компьютере (Не должен передаваться другим клиентам)
     public string FilePath { get; set; }
     public byte[][] Blocks { get; set; } 
 }
