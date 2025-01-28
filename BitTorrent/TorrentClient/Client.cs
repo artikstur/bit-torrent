@@ -27,11 +27,10 @@ public class Client
 
     private async Task StartSharingFiles()
     {
-        var broadcastTask = Task.Run(AnswerAsPeer);
-        var clientTask = Task.Run(DeterminePeer);
         var sendBlocksTask = Task.Run(ProcessClientMessage);
+        var broadcastTask = Task.Run(AnswerAsPeer);
 
-        await Task.WhenAll(broadcastTask, clientTask, sendBlocksTask);
+        await Task.WhenAll(broadcastTask, sendBlocksTask);
     }
 
     // TODO: Добавить auditpath в ответ вместе с блоком
@@ -82,6 +81,45 @@ public class Client
 
                 continue;
             }
+
+            if (buffer.IsBePeer())
+            {
+                _ = Task.Run(() =>
+                {
+                    var hash = buffer.GetRootHashFromRequest();
+
+                    var clientData = new ClientData
+                    {
+                        Ip = ((IPEndPoint)remoteEndPoint).Address,
+                        Port = ((IPEndPoint)remoteEndPoint).Port,
+                        Updated = DateTime.UtcNow
+                    };
+
+                    _fileProducers.AddOrUpdate(
+                        hash, _ => [clientData],
+                        (_, existingClients) =>
+                        {
+                            lock (existingClients)
+                            {
+                                var existingClient = existingClients.FirstOrDefault(c =>
+                                    c.Ip.Equals(clientData.Ip) && c.Port == clientData.Port);
+
+                                if (existingClient != null)
+                                {
+                                    existingClient.Updated = DateTime.UtcNow;
+                                }
+                                else
+                                {
+                                    existingClients.Add(clientData);
+                                }
+                            }
+
+                            return existingClients;
+                        });
+
+                    Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
+                });
+            }
         }
     }
 
@@ -105,55 +143,6 @@ public class Client
         }
     }
 
-    private async Task DeterminePeer()
-    {
-        var buffer = new byte[MaxPacketSize];
-        while (true)
-        {
-            var remoteEndPoint = await _networkClient.ReceiveClientMessage(buffer);
-
-            if (!buffer.IsBePeer()) return;
-            var hash = buffer.GetRootHashFromRequest();
-
-            var clientData = new ClientData
-            {
-                Ip = ((IPEndPoint)remoteEndPoint).Address,
-                Port = ((IPEndPoint)remoteEndPoint).Port,
-                Updated = DateTime.UtcNow
-            };
-
-            _fileProducers.AddOrUpdate(
-                hash, _ => [clientData],
-                (_, existingClients) =>
-                {
-                    lock (existingClients)
-                    {
-                        var existingClient = existingClients.FirstOrDefault(c =>
-                            c.Ip.Equals(clientData.Ip) && c.Port == clientData.Port);
-
-                        if (existingClient != null)
-                        {
-                            existingClient.Updated = DateTime.UtcNow;
-                        }
-                        else
-                        {
-                            existingClients.Add(clientData);
-                        }
-                    }
-
-                    return existingClients;
-                });
-
-            if (!_fileProducers.TryGetValue(hash, out var clients)) continue;
-
-            Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
-            // foreach (var client in clients)
-            // {
-            //     Console.WriteLine($"IP: {client.Ip}, Port: {client.Port}, Updated: {client.Updated}");
-            // }
-        }
-    }
-
     private async Task DownloadFiles()
     {
         var filesInProcess = _clientFiles
@@ -164,7 +153,7 @@ public class Client
             SearchPeers(fileMetaData.Key);
         }
 
-        await Task.Delay(3000);
+        await Task.Delay(1000);
         foreach (var fileMetaData in filesInProcess)
         {
             StartDownloadingWithRetries(fileMetaData.Value);
@@ -214,7 +203,7 @@ public class Client
             Console.WriteLine("Нет раздающих для файла.");
             return;
         }
-        
+
         foreach (var producer in producers)
         {
             for (int blockIndex = 0; blockIndex < fileMetaData.TotalBlocks; blockIndex++)
@@ -224,18 +213,18 @@ public class Client
                 await AskBlockFromProducer(producer, fileMetaData, blockIndex);
             }
         }
-        
+
         var retryInterval = TimeSpan.FromSeconds(5);
         while (GetMissingBlocks(fileMetaData.Blocks).Count > 0)
         {
             await Task.Delay(retryInterval);
             await RetryMissingBlocks(fileMetaData, producers);
         }
-        
+
         Console.WriteLine($"Загрузка завершена для файла {fileMetaData.FileName}");
         await FileWorker.WriteBlocksToFile(fileMetaData);
     }
-    
+
     private async Task AskBlockFromProducer(ClientData producer, FileMetaData fileMetaData, int blockIndex)
     {
         await _networkClient.Send(new IPEndPoint(producer.Ip, producer.Port),

@@ -1,9 +1,10 @@
 ﻿using MerkleTree;
 using TorrentClient;
 
-string filePath = @"C:\Users\Artur\Desktop\life.png";
-string torrentPath = @"C:\Users\Artur\Desktop\test-torrent\life.png";
+string filePath = @"C:\Users\artur\OneDrive\Desktop\building.png";
+string torrentPath = @"C:\Users\artur\OneDrive\Desktop\test-torrent\building.png";
 int blockSize = 1024; // 1кб
+
 var sharingFile = new FileMetaData
 {
     FileStatus = FileStatus.Sharing,

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Unicode;
 
 namespace TorrentClient;
 
@@ -40,6 +41,7 @@ public class NetworkClient : INetworkClient
     public async Task<EndPoint?> ReceiveClientMessage(byte[] buffer)
     {
         var result = await _clientSocket.ReceiveFromAsync(buffer, new IPEndPoint(IPAddress.Any, 0));
+        var a = Encoding.UTF8.GetString(buffer);
         return IsSelf(result.RemoteEndPoint) ? null : result.RemoteEndPoint;
     }
 
