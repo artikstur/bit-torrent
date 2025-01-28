@@ -42,7 +42,7 @@ public class Client
         {
             var remoteEndPoint = await _networkClient.ReceiveClientMessage(buffer);
             if (remoteEndPoint is null) continue;
-            
+
             if (buffer.IsNeedBlock())
             {
                 var request = buffer.GetBlockPacketRequest();
@@ -147,14 +147,13 @@ public class Client
             if (!_fileProducers.TryGetValue(hash, out var clients)) continue;
 
             Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
-            foreach (var client in clients)
-            {
-                Console.WriteLine($"IP: {client.Ip}, Port: {client.Port}, Updated: {client.Updated}");
-            }
+            // foreach (var client in clients)
+            // {
+            //     Console.WriteLine($"IP: {client.Ip}, Port: {client.Port}, Updated: {client.Updated}");
+            // }
         }
     }
 
-    // TODO: разобраться с Delay
     private async Task DownloadFiles()
     {
         var filesInProcess = _clientFiles
@@ -162,37 +161,81 @@ public class Client
 
         foreach (var fileMetaData in filesInProcess)
         {
-            await SearchPeers(fileMetaData.Key);
+            SearchPeers(fileMetaData.Key);
         }
 
         await Task.Delay(3000);
         foreach (var fileMetaData in filesInProcess)
         {
-            await StartDownloading(fileMetaData.Value);
+            StartDownloadingWithRetries(fileMetaData.Value);
         }
     }
 
-    // TODO: Настроить прием данных от пиров в общий массив
-    // TODO: Валидировать данные
-    private async Task StartDownloading(FileMetaData fileMetaData)
+    private List<int> GetMissingBlocks(byte[][] blocks)
     {
-        if (!_fileProducers.TryGetValue(fileMetaData.RootHash, out var producers))
+        var missingBlocks = new List<int>();
+        for (int i = 0; i < blocks.Length; i++)
         {
-            Console.WriteLine("Либо нет раздающих, либо перезагрузите приложение");
+            if (blocks[i] == null)
+            {
+                missingBlocks.Add(i);
+            }
+        }
+
+        return missingBlocks;
+    }
+
+    private async Task RetryMissingBlocks(FileMetaData fileMetaData, List<ClientData> producers)
+    {
+        var missingBlocks = GetMissingBlocks(fileMetaData.Blocks);
+
+        if (missingBlocks.Count == 0)
+        {
+            Console.WriteLine("Все блоки загружены.");
             return;
         }
 
+        Console.WriteLine($"Повторный запрос {missingBlocks.Count} недостающих блоков.");
+
+        foreach (var producer in producers)
+        {
+            foreach (var blockIndex in missingBlocks)
+            {
+                Console.WriteLine($"Запрашиваю блок {blockIndex} у пира {producer.Ip}:{producer.Port}");
+                await AskBlockFromProducer(producer, fileMetaData, blockIndex);
+            }
+        }
+    }
+
+    private async Task StartDownloadingWithRetries(FileMetaData fileMetaData)
+    {
+        if (!_fileProducers.TryGetValue(fileMetaData.RootHash, out var producers))
+        {
+            Console.WriteLine("Нет раздающих для файла.");
+            return;
+        }
+        
         foreach (var producer in producers)
         {
             for (int blockIndex = 0; blockIndex < fileMetaData.TotalBlocks; blockIndex++)
             {
                 if (fileMetaData.Blocks[blockIndex] != null) continue;
 
-                AskBlockFromProducer(producer, fileMetaData, blockIndex);
+                await AskBlockFromProducer(producer, fileMetaData, blockIndex);
             }
         }
+        
+        var retryInterval = TimeSpan.FromSeconds(5);
+        while (GetMissingBlocks(fileMetaData.Blocks).Count > 0)
+        {
+            await Task.Delay(retryInterval);
+            await RetryMissingBlocks(fileMetaData, producers);
+        }
+        
+        Console.WriteLine($"Загрузка завершена для файла {fileMetaData.FileName}");
+        await FileWorker.WriteBlocksToFile(fileMetaData);
     }
-
+    
     private async Task AskBlockFromProducer(ClientData producer, FileMetaData fileMetaData, int blockIndex)
     {
         await _networkClient.Send(new IPEndPoint(producer.Ip, producer.Port),

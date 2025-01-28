@@ -31,4 +31,27 @@ public static class FileWorker
         
         throw new FileNotFoundException("Файл не найден", fileMetaData.FilePath);
     }
+    
+    public static async Task WriteBlocksToFile(FileMetaData fileMetaData)
+    {
+        if (fileMetaData.Blocks == null || fileMetaData.Blocks.Length == 0)
+        {
+            throw new InvalidOperationException("Нет блоков для записи в файл.");
+        }
+
+        string directory = Path.GetDirectoryName(fileMetaData.FilePath) ?? "";
+        if (!Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        using FileStream fileStream = new FileStream(fileMetaData.FilePath, FileMode.Create, FileAccess.Write);
+
+        foreach (var block in fileMetaData.Blocks)
+        {
+            fileStream.Write(block, 0, block.Length);
+        }
+
+        Console.WriteLine($"Файл успешно записан по пути: {fileMetaData.FilePath}");
+    }
 }

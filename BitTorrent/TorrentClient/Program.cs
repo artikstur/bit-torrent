@@ -1,11 +1,13 @@
 ﻿using MerkleTree;
 using TorrentClient;
 
-int blockSize = 1024;
+string filePath = @"C:\Users\Artur\Desktop\life.png";
+string torrentPath = @"C:\Users\Artur\Desktop\test-torrent\life.png";
+int blockSize = 1024; // 1кб
 var sharingFile = new FileMetaData
 {
     FileStatus = FileStatus.Sharing,
-    FilePath = @"C:\Users\artur\OneDrive\Desktop\building.png",
+    FilePath = filePath,
     BlockSize = blockSize,
 };
 
@@ -29,7 +31,7 @@ var client1 = new Client(new Dictionary<string, FileMetaData>
         new FileMetaData
         {
             FileStatus = FileStatus.Downloading,
-            FilePath = @"C:\Users\artur\OneDrive\Desktop\test-torrent\building.png",
+            FilePath = torrentPath,
             BlockSize = blockSize,
             TotalBlocks = blocks.Length,
             RootHash = sharingFile.RootHash,
@@ -43,9 +45,20 @@ var client2 = new Client(new Dictionary<string, FileMetaData>
     { sharingFile.RootHash, sharingFile }
 });
 
+var client3 = new Client(new Dictionary<string, FileMetaData>
+{
+    { sharingFile.RootHash, sharingFile }
+});
+
+var client4 = new Client(new Dictionary<string, FileMetaData>
+{
+    { sharingFile.RootHash, sharingFile }
+});
 
 clients.Add(client1);
 clients.Add(client2);
+clients.Add(client3);
+clients.Add(client4);
 
 var tasks = clients.Select(client => Task.Run(async () => await client.Start())).ToArray();
 
