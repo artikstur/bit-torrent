@@ -33,7 +33,6 @@ public class Client
         await Task.WhenAll(broadcastTask, sendBlocksTask);
     }
 
-    // TODO: Добавить auditpath в ответ вместе с блоком
     private async Task ProcessClientMessage()
     {
         var buffer = new byte[MaxPacketSize];
@@ -44,83 +43,96 @@ public class Client
 
             if (buffer.IsNeedBlock())
             {
-                var request = buffer.GetBlockPacketRequest();
-                _ = Task.Run(async () =>
-                {
-                    if (!_clientFiles.TryGetValue(request.Hash, out var fileData)
-                        || fileData.FileStatus != FileStatus.Sharing) return;
-
-                    await _networkClient.Send(remoteEndPoint, new PackageBuilder(MaxSizeOfContent)
-                        .WithQuery(QueryType.Response)
-                        .WithCommand(CommandType.GiveBlock)
-                        .WithPackageType(PackageType.Partial)
-                        .WithContent(Encoding.UTF8.GetBytes(request.Hash.CreateGivePacketResponse(
-                            request.BlockIndex, fileData.Blocks[request.BlockIndex]))));
-
-                    Console.WriteLine($"Я отправил блок номер {request.BlockIndex}");
-                });
-
+                await HandleNeedBlockMessage(buffer, remoteEndPoint);
                 continue;
             }
 
             if (buffer.IsGiveBlock())
             {
-                var request = buffer.GetBlockPacketResponse();
-                _ = Task.Run(() =>
-                {
-                    Console.WriteLine($"Мне обратно пришел блок с номером {request.BlockIndex}");
-                    if (_clientFiles.TryGetValue(request.Hash, out var fileData) &&
-                        fileData.FileStatus == FileStatus.Downloading)
-                    {
-                        lock (fileData.Blocks)
-                        {
-                            fileData.Blocks[request.BlockIndex] = request.Block;
-                        }
-                    }
-                });
-
+                HandleGiveBlockMessage(buffer);
                 continue;
             }
 
             if (buffer.IsBePeer())
             {
-                _ = Task.Run(() =>
-                {
-                    var hash = buffer.GetRootHashFromRequest();
-
-                    var clientData = new ClientData
-                    {
-                        Ip = ((IPEndPoint)remoteEndPoint).Address,
-                        Port = ((IPEndPoint)remoteEndPoint).Port,
-                        Updated = DateTime.UtcNow
-                    };
-
-                    _fileProducers.AddOrUpdate(
-                        hash, _ => [clientData],
-                        (_, existingClients) =>
-                        {
-                            lock (existingClients)
-                            {
-                                var existingClient = existingClients.FirstOrDefault(c =>
-                                    c.Ip.Equals(clientData.Ip) && c.Port == clientData.Port);
-
-                                if (existingClient != null)
-                                {
-                                    existingClient.Updated = DateTime.UtcNow;
-                                }
-                                else
-                                {
-                                    existingClients.Add(clientData);
-                                }
-                            }
-
-                            return existingClients;
-                        });
-
-                    Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
-                });
+                HandleBePeerMessage(buffer, remoteEndPoint);
             }
         }
+    }
+
+    private async Task HandleNeedBlockMessage(byte[] buffer, EndPoint remoteEndPoint)
+    {
+        var request = buffer.GetBlockPacketRequest();
+        _ = Task.Run(async () =>
+        {
+            if (!_clientFiles.TryGetValue(request.Hash, out var fileData)
+                || fileData.FileStatus != FileStatus.Sharing) return;
+
+            await _networkClient.Send(remoteEndPoint, new PackageBuilder(MaxSizeOfContent)
+                .WithQuery(QueryType.Response)
+                .WithCommand(CommandType.GiveBlock)
+                .WithPackageType(PackageType.Partial)
+                .WithContent(Encoding.UTF8.GetBytes(request.Hash.CreateGivePacketResponse(
+                    request.BlockIndex, fileData.Blocks[request.BlockIndex]))));
+
+            Console.WriteLine($"Я отправил блок номер {request.BlockIndex}");
+        });
+    }
+
+    private void HandleGiveBlockMessage(byte[] buffer)
+    {
+        var request = buffer.GetBlockPacketResponse();
+        _ = Task.Run(() =>
+        {
+            Console.WriteLine($"Мне обратно пришел блок с номером {request.BlockIndex}");
+            if (_clientFiles.TryGetValue(request.Hash, out var fileData) &&
+                fileData.FileStatus == FileStatus.Downloading)
+            {
+                lock (fileData.Blocks)
+                {
+                    fileData.Blocks[request.BlockIndex] = request.Block;
+                }
+            }
+        });
+    }
+
+    private void HandleBePeerMessage(byte[] buffer, EndPoint remoteEndPoint)
+    {
+        _ = Task.Run(() =>
+        {
+            var hash = buffer.GetRootHashFromRequest();
+
+            var clientData = new ClientData
+            {
+                Ip = ((IPEndPoint)remoteEndPoint).Address,
+                Port = ((IPEndPoint)remoteEndPoint).Port,
+                Updated = DateTime.UtcNow
+            };
+
+            _fileProducers.AddOrUpdate(
+                hash, _ => new List<ClientData> { clientData },
+                (_, existingClients) =>
+                {
+                    lock (existingClients)
+                    {
+                        var existingClient = existingClients.FirstOrDefault(c =>
+                            c.Ip.Equals(clientData.Ip) && c.Port == clientData.Port);
+
+                        if (existingClient != null)
+                        {
+                            existingClient.Updated = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            existingClients.Add(clientData);
+                        }
+                    }
+
+                    return existingClients;
+                });
+
+            Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
+        });
     }
 
     private async Task AnswerAsPeer()
