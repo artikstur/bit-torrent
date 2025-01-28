@@ -13,6 +13,7 @@ public class Client
     private readonly Dictionary<string, FileMetaData> _clientFiles;
     private readonly INetworkClient _networkClient;
     private readonly ConcurrentDictionary<string, List<ClientData>> _fileProducers = new();
+    private CancellationTokenSource _cancellationTokenSource = new();
 
     public Client(Dictionary<string, FileMetaData> clientFiles)
     {
@@ -22,21 +23,38 @@ public class Client
 
     public async Task Start()
     {
-        await Task.WhenAll(DownloadFiles(), StartSharingFiles());
+        _cancellationTokenSource = new CancellationTokenSource();
+        var token = _cancellationTokenSource.Token;
+
+        await Task.WhenAll(DownloadFiles(token), StartSharingFiles(token));
     }
 
-    private async Task StartSharingFiles()
+    public async Task StopSharingFiles()
     {
-        var sendBlocksTask = Task.Run(ProcessClientMessage);
-        var broadcastTask = Task.Run(AnswerAsPeer);
+        _cancellationTokenSource.Cancel();
+        await Task.Delay(100); 
+        Console.WriteLine("Файлы больше не расшариваются");
+    }
+
+    public async Task StopDownloading()
+    {
+        _cancellationTokenSource.Cancel();
+        await Task.Delay(100); 
+        Console.WriteLine("Загрузка завершена");
+    }
+
+    private async Task StartSharingFiles(CancellationToken token)
+    {
+        var sendBlocksTask = Task.Run(() => ProcessClientMessage(token), token);
+        var broadcastTask = Task.Run(() => AnswerAsPeer(token), token);
 
         await Task.WhenAll(broadcastTask, sendBlocksTask);
     }
 
-    private async Task ProcessClientMessage()
+    private async Task ProcessClientMessage(CancellationToken token)
     {
         var buffer = new byte[MaxPacketSize];
-        while (true)
+        while (!token.IsCancellationRequested)
         {
             var remoteEndPoint = await _networkClient.ReceiveClientMessage(buffer);
             if (remoteEndPoint is null) continue;
@@ -58,6 +76,8 @@ public class Client
                 HandleBePeerMessage(buffer, remoteEndPoint);
             }
         }
+
+        Console.WriteLine("Обработка клиентских сообщений завершена.");
     }
 
     private async Task HandleNeedBlockMessage(byte[] buffer, EndPoint remoteEndPoint)
@@ -135,10 +155,10 @@ public class Client
         });
     }
 
-    private async Task AnswerAsPeer()
+    private async Task AnswerAsPeer(CancellationToken token)
     {
         var buffer = new byte[MaxPacketSize];
-        while (true)
+        while (!token.IsCancellationRequested)
         {
             var remoteEndPoint = await _networkClient.ReceiveBroadcast(buffer);
             if (remoteEndPoint is null) continue;
@@ -153,22 +173,56 @@ public class Client
                 .WithPackageType(PackageType.Full)
                 .WithContent(Encoding.UTF8.GetBytes(hash.CreatePeerAnswer())));
         }
+
+        Console.WriteLine("Ответы на запросы пиров завершены.");
     }
 
-    private async Task DownloadFiles()
+    private async Task DownloadFiles(CancellationToken token)
     {
         var filesInProcess = _clientFiles
             .Where(f => f.Value.FileStatus == FileStatus.Downloading);
 
         foreach (var fileMetaData in filesInProcess)
         {
-            SearchPeers(fileMetaData.Key);
+            await SearchPeers(fileMetaData.Key);
         }
 
-        await Task.Delay(1000);
+        await Task.Delay(1000, token);
         foreach (var fileMetaData in filesInProcess)
         {
-            StartDownloadingWithRetries(fileMetaData.Value);
+            await StartDownloadingWithRetries(fileMetaData.Value, token);
+        }
+    }
+
+    private async Task StartDownloadingWithRetries(FileMetaData fileMetaData, CancellationToken token)
+    {
+        if (!_fileProducers.TryGetValue(fileMetaData.RootHash, out var producers))
+        {
+            Console.WriteLine("Нет раздающих для файла.");
+            return;
+        }
+
+        foreach (var producer in producers)
+        {
+            for (int blockIndex = 0; blockIndex < fileMetaData.TotalBlocks; blockIndex++)
+            {
+                if (fileMetaData.Blocks[blockIndex] != null) continue;
+
+                await AskBlockFromProducer(producer, fileMetaData, blockIndex);
+            }
+        }
+
+        var retryInterval = TimeSpan.FromSeconds(5);
+        while (GetMissingBlocks(fileMetaData.Blocks).Count > 0 && !token.IsCancellationRequested)
+        {
+            await Task.Delay(retryInterval, token);
+            await RetryMissingBlocks(fileMetaData, producers);
+        }
+
+        if (GetMissingBlocks(fileMetaData.Blocks).Count == 0)
+        {
+            Console.WriteLine($"Загрузка завершена для файла {fileMetaData.FileName}");
+            await FileWorker.WriteBlocksToFile(fileMetaData);
         }
     }
 
@@ -206,35 +260,6 @@ public class Client
                 await AskBlockFromProducer(producer, fileMetaData, blockIndex);
             }
         }
-    }
-
-    private async Task StartDownloadingWithRetries(FileMetaData fileMetaData)
-    {
-        if (!_fileProducers.TryGetValue(fileMetaData.RootHash, out var producers))
-        {
-            Console.WriteLine("Нет раздающих для файла.");
-            return;
-        }
-
-        foreach (var producer in producers)
-        {
-            for (int blockIndex = 0; blockIndex < fileMetaData.TotalBlocks; blockIndex++)
-            {
-                if (fileMetaData.Blocks[blockIndex] != null) continue;
-
-                await AskBlockFromProducer(producer, fileMetaData, blockIndex);
-            }
-        }
-
-        var retryInterval = TimeSpan.FromSeconds(5);
-        while (GetMissingBlocks(fileMetaData.Blocks).Count > 0)
-        {
-            await Task.Delay(retryInterval);
-            await RetryMissingBlocks(fileMetaData, producers);
-        }
-
-        Console.WriteLine($"Загрузка завершена для файла {fileMetaData.FileName}");
-        await FileWorker.WriteBlocksToFile(fileMetaData);
     }
 
     private async Task AskBlockFromProducer(ClientData producer, FileMetaData fileMetaData, int blockIndex)
