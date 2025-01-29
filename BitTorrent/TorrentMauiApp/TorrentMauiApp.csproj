@@ -51,4 +51,11 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <MauiPlatformSpecificFolder Remove="Platforms\Android\" />
+      <MauiPlatformSpecificFolder Remove="Platforms\iOS\" />
+      <MauiPlatformSpecificFolder Remove="Platforms\MacCatalyst\" />
+      <MauiPlatformSpecificFolder Remove="Platforms\Tizen\" />
+    </ItemGroup>
+
 </Project>
