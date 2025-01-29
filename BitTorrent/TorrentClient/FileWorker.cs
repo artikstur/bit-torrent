@@ -2,14 +2,14 @@ namespace TorrentClient;
 
 public static class FileWorker
 {
-    public static byte[][] SplitFileIntoBlocks(FileMetaData fileMetaData, int blockSize)
+    public static byte[][] SplitFileIntoBlocks(string filePath, int blockSize)
     {
-        long fileSize = new FileInfo(fileMetaData.FilePath).Length;
+        long fileSize = new FileInfo(filePath).Length;
         int totalBlocks = (int)Math.Ceiling((double)fileSize / blockSize);
         
         byte[][] blocks = new byte[totalBlocks][];
 
-        using FileStream fileStream = new FileStream(fileMetaData.FilePath, FileMode.Open, FileAccess.Read);
+        using FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
 
         for (int i = 0; i < totalBlocks; i++)
         {
@@ -20,16 +20,15 @@ public static class FileWorker
 
         return blocks;
     }
-
     
-    public static long GetFileSize(FileMetaData fileMetaData)
+    public static long GetFileSize(string filePath)
     {
-        if (File.Exists(fileMetaData.FilePath))
+        if (File.Exists(filePath))
         {
-            return new FileInfo(fileMetaData.FilePath).Length;
+            return new FileInfo(filePath).Length;
         }
         
-        throw new FileNotFoundException("Файл не найден", fileMetaData.FilePath);
+        throw new FileNotFoundException("Файл не найден", filePath);
     }
     
     public static async Task WriteBlocksToFile(FileMetaData fileMetaData)

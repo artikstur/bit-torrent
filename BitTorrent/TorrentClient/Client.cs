@@ -145,7 +145,7 @@ public class Client
                     return existingClients;
                 });
 
-            Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
+            // Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
         });
     }
 
@@ -223,7 +223,7 @@ public class Client
             await RetryMissingBlocks(fileMetaData, producers);
         }
 
-        if (GetMissingBlocks(fileMetaData.Blocks).Count == 0)
+        if (GetMissingBlocks(fileMetaData.Blocks).Count == 0 && fileMetaData.FileStatus == FileStatus.Downloading)
         {
             Console.WriteLine($"Загрузка завершена для файла {fileMetaData.FileName}");
             fileMetaData.FileStatus = FileStatus.Sharing;

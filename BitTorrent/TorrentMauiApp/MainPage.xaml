@@ -1,50 +1,96 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TorrentMauiApp.MainPage"
              Title="Torrent">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="30,0" Spacing="25">
+    <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="*,*" Padding="20" RowSpacing="10" ColumnSpacing="10">
+        
+        <!-- Панель кнопок управления -->
+        <HorizontalStackLayout Grid.Row="0" Grid.ColumnSpan="2" HorizontalOptions="Center" Spacing="10">
+            <Button Text="Запустить раздачу"
+                    Clicked="OnStartSharingClicked"
+                    BackgroundColor="#34C759"
+                    TextColor="White"
+                    CornerRadius="10"
+                    Padding="10" />
+            <Button Text="Остановить раздачу"
+                    Clicked="OnStopSharingClicked"
+                    BackgroundColor="#FF3B30"
+                    TextColor="White"
+                    CornerRadius="10"
+                    Padding="10" />
+            <Button Text="Запустить скачивание"
+                    Clicked="OnStartDownloadClicked"
+                    BackgroundColor="#34C759"
+                    TextColor="White"
+                    CornerRadius="10"
+                    Padding="10" />
+            <Button Text="Остановить скачивание"
+                    Clicked="OnStopDownloadClicked"
+                    BackgroundColor="#FF3B30"
+                    TextColor="White"
+                    CornerRadius="10"
+                    Padding="10" />
+        </HorizontalStackLayout>
 
-            <Label Text="Torrent Client"
-                   Style="{StaticResource Headline}"
-                   SemanticProperties.HeadingLevel="Level1" />
-            
-            <HorizontalStackLayout HorizontalOptions="Center">
-                <Entry x:Name="FilePathEntry"
-                       Placeholder="Введите путь к торрент файлу"
-                       WidthRequest="300" />
-            </HorizontalStackLayout>
-            
-            <HorizontalStackLayout HorizontalOptions="Center">
-                <Button Text="Выбрать файл"
-                        Clicked="OnSelectFileClicked"
-                        WidthRequest="150" />
-            </HorizontalStackLayout>
+        <!-- Кнопки выбора файла и импорта -->
+        <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2" HorizontalOptions="Center" Spacing="10">
+            <Button Text="Выбрать файл"
+                    Clicked="OnSelectFileClicked"
+                    BackgroundColor="#007AFF"
+                    TextColor="White"
+                    CornerRadius="10"
+                    Padding="10" />
+            <Button Text="Импорт образа"
+                    Clicked="OnImportClicked"
+                    BackgroundColor="#FF9500"
+                    TextColor="White"
+                    CornerRadius="10"
+                    Padding="10" />
+        </HorizontalStackLayout>
 
-            <HorizontalStackLayout HorizontalOptions="Center">
-                <Entry x:Name="TorrentPathEntry"
-                       Placeholder="Введите путь для сохранения файла"
-                       WidthRequest="300" />
-            </HorizontalStackLayout>
-
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="15">
-                <Button x:Name="StartDownloadButton"
-                        Text="Начать загрузку"
-                        Clicked="OnStartDownloadClicked"
-                        WidthRequest="200" />
-                <Button x:Name="StopDownloadButton"
-                        Text="Остановить загрузку"
-                        Clicked="OnStopDownloadClicked"
-                        WidthRequest="200" />
-                <Button x:Name="StopFileDistributionButton"
-                        Text="Остановить раздачу файла"
-                        Clicked="OnStopDistributionClicked"
-                        WidthRequest="220" />
-            </HorizontalStackLayout>
-
+        <!-- Колонка для раздаваемых файлов -->
+        <VerticalStackLayout Grid.Row="2" Grid.Column="0">
+            <Label Text="Раздается:" FontSize="20" FontAttributes="Bold" HorizontalOptions="Center" />
+            <ListView ItemsSource="{Binding _sharedFiles}" HeightRequest="300" x:Name="FilesSharingView">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Label Text="{Binding FileName}" Grid.Column="0" />
+                                <Button Text="Скачать образ"
+                                        Clicked="OnDownloadClicked"
+                                        Grid.Column="1"
+                                        BackgroundColor="#34C759"
+                                        TextColor="White"
+                                        CornerRadius="10"
+                                        Padding="10" />
+                            </Grid>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
         </VerticalStackLayout>
-    </ScrollView>
+
+        <!-- Колонка для загружаемых файлов -->
+        <VerticalStackLayout Grid.Row="2" Grid.Column="1">
+            <Label Text="Загружаются:" FontSize="20" FontAttributes="Bold" HorizontalOptions="Center" />
+            <ListView ItemsSource="{Binding _dowloadingFiles}" HeightRequest="300" x:Name="FilesDownloadingView" >
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <Label Text="{Binding FileName}" />
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </VerticalStackLayout>
+
+    </Grid>
 
 </ContentPage>
