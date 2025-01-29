@@ -10,15 +10,14 @@ namespace TorrentClient;
 
 public class Client
 {
-    private readonly Dictionary<string, FileMetaData> _clientFiles;
-    private readonly INetworkClient _networkClient;
+    private readonly Dictionary<string, FileMetaData> _clientFiles = new();
+    private readonly INetworkClient _networkClient = new NetworkClient();
     private readonly ConcurrentDictionary<string, List<ClientData>> _fileProducers = new();
     private CancellationTokenSource _cancellationTokenSource = new();
-
-    public Client(Dictionary<string, FileMetaData> clientFiles)
+    
+    public async Task AddFile(string rootHash, FileMetaData fileMetaData)
     {
-        _clientFiles = clientFiles;
-        _networkClient = new NetworkClient();
+        _clientFiles.TryAdd(rootHash, fileMetaData);
     }
 
     public async Task Start()
@@ -38,7 +37,7 @@ public class Client
 
     public async Task StopDownloading()
     {
-        _cancellationTokenSource.Cancel();
+        await _cancellationTokenSource.CancelAsync();
         await Task.Delay(100); 
         Console.WriteLine("Загрузка завершена");
     }
@@ -180,20 +179,30 @@ public class Client
     private async Task DownloadFiles(CancellationToken token)
     {
         var filesInProcess = _clientFiles
-            .Where(f => f.Value.FileStatus == FileStatus.Downloading);
+            .Where(f => f.Value.FileStatus == FileStatus.Downloading)
+            .ToDictionary(f => f.Key, f => f.Value);
 
-        foreach (var fileMetaData in filesInProcess)
+        var searchPeersTask = Task.Run(async () =>
         {
-            await SearchPeers(fileMetaData.Key);
-        }
+            while (!token.IsCancellationRequested)
+            {
+                foreach (var fileMetaData in filesInProcess)
+                {
+                    await SearchPeers(fileMetaData.Key);
+                }
 
-        await Task.Delay(1000, token);
-        foreach (var fileMetaData in filesInProcess)
-        {
-            await StartDownloadingWithRetries(fileMetaData.Value, token);
-        }
+                await Task.Delay(TimeSpan.FromSeconds(3), token);
+                
+                foreach (var fileMetaData in filesInProcess)
+                {
+                    await StartDownloadingWithRetries(fileMetaData.Value, token);
+                }
+
+                token.ThrowIfCancellationRequested();
+            }
+        }, token);
     }
-
+    
     private async Task StartDownloadingWithRetries(FileMetaData fileMetaData, CancellationToken token)
     {
         if (!_fileProducers.TryGetValue(fileMetaData.RootHash, out var producers))
@@ -222,6 +231,7 @@ public class Client
         if (GetMissingBlocks(fileMetaData.Blocks).Count == 0)
         {
             Console.WriteLine($"Загрузка завершена для файла {fileMetaData.FileName}");
+            fileMetaData.FileStatus = FileStatus.Sharing;
             await FileWorker.WriteBlocksToFile(fileMetaData);
         }
     }

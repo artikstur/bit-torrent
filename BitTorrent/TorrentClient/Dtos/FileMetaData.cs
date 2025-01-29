@@ -5,7 +5,6 @@ public class FileMetaData
     public string RootHash { get; set; }
     public FileStatus FileStatus { get; set; }
     public string FileName { get; set; }
-    public string FileExtension { get; set; }
     public long FileSize { get; set; }
     public long BlockSize { get; set; }
     public long TotalBlocks { get; set; } 
