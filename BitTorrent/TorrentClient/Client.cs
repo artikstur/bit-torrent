@@ -15,11 +15,6 @@ public class Client
     private readonly ConcurrentDictionary<string, List<ClientData>> _fileProducers = new();
     private CancellationTokenSource _cancellationTokenSource = new();
     
-    public async Task AddFile(string rootHash, FileMetaData fileMetaData)
-    {
-        _clientFiles.TryAdd(rootHash, fileMetaData);
-    }
-
     public async Task Start()
     {
         _cancellationTokenSource = new CancellationTokenSource();
@@ -30,15 +25,15 @@ public class Client
 
     public async Task StopSharingFiles()
     {
-        _cancellationTokenSource.Cancel();
-        await Task.Delay(100); 
+        await _cancellationTokenSource.CancelAsync();
+        await Task.Delay(100);
         Console.WriteLine("Файлы больше не расшариваются");
     }
 
     public async Task StopDownloading()
     {
         await _cancellationTokenSource.CancelAsync();
-        await Task.Delay(100); 
+        await Task.Delay(100);
         Console.WriteLine("Загрузка завершена");
     }
 
@@ -192,7 +187,7 @@ public class Client
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(3), token);
-                
+
                 foreach (var fileMetaData in filesInProcess)
                 {
                     await StartDownloadingWithRetries(fileMetaData.Value, token);
@@ -202,7 +197,7 @@ public class Client
             }
         }, token);
     }
-    
+
     private async Task StartDownloadingWithRetries(FileMetaData fileMetaData, CancellationToken token)
     {
         if (!_fileProducers.TryGetValue(fileMetaData.RootHash, out var producers))
@@ -291,5 +286,15 @@ public class Client
             .WithPackageType(PackageType.Full)
             .WithCommand(CommandType.DiscoverPeers)
             .WithContent(Encoding.UTF8.GetBytes(hash.CreatePeerRequest())));
+    }
+    
+    public async Task AddFile(string rootHash, FileMetaData fileMetaData)
+    {
+        _clientFiles.TryAdd(rootHash, fileMetaData);
+    }
+
+    public async Task<List<FileMetaData>> GetFiles()
+    {
+        return _clientFiles.Select(file => file.Value).ToList();
     }
 }
