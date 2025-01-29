@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MerkleTree", "MerkleTree\Me
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentClient", "TorrentClient\TorrentClient.csproj", "{C553620B-8337-47C5-9D9A-9E01BEE40839}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentMauiApp", "TorrentMauiApp\TorrentMauiApp.csproj", "{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{C553620B-8337-47C5-9D9A-9E01BEE40839}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C553620B-8337-47C5-9D9A-9E01BEE40839}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C553620B-8337-47C5-9D9A-9E01BEE40839}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
