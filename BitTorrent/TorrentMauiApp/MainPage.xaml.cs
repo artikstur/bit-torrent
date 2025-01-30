@@ -59,7 +59,7 @@ public partial class MainPage : ContentPage
 
         if (fileMetaData == null) return;
 
-        var folderPath = @"C:\Users\artur\OneDrive\Desktop\test-torrent";
+        var folderPath = @"C:\Users\egor\Desktop\test";
 
         if (string.IsNullOrEmpty(folderPath)) return;
 

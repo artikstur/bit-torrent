@@ -1,10 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MerkleTree", "MerkleTree\MerkleTree.csproj", "{90C5B37A-EE35-462E-8011-CF53423FE3D0}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34728.123
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MerkleTree", "MerkleTree\MerkleTree.csproj", "{90C5B37A-EE35-462E-8011-CF53423FE3D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentClient", "TorrentClient\TorrentClient.csproj", "{C553620B-8337-47C5-9D9A-9E01BEE40839}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TorrentClient", "TorrentClient\TorrentClient.csproj", "{C553620B-8337-47C5-9D9A-9E01BEE40839}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentMauiApp", "TorrentMauiApp\TorrentMauiApp.csproj", "{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TorrentMauiApp", "TorrentMauiApp\TorrentMauiApp.csproj", "{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorrentWinFormsApp", "TorrentWinFormsApp\TorrentWinFormsApp.csproj", "{1F40C8D6-86EB-4562-BF3B-B593E59E64C9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +29,12 @@ Global
 		{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C9D45FD2-67E4-4514-8CC5-43C9CFD829FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F40C8D6-86EB-4562-BF3B-B593E59E64C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F40C8D6-86EB-4562-BF3B-B593E59E64C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F40C8D6-86EB-4562-BF3B-B593E59E64C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F40C8D6-86EB-4562-BF3B-B593E59E64C9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
