@@ -12,6 +12,7 @@
         private System.Windows.Forms.ListBox listDownloadingFiles;
         private System.Windows.Forms.Label lblShared;
         private System.Windows.Forms.Label lblDownloading;
+        private FlowLayoutPanel panelDownloadButtons;
 
         private void InitializeComponent()
         {
@@ -25,12 +26,13 @@
             listDownloadingFiles = new ListBox();
             lblShared = new Label();
             lblDownloading = new Label();
+            panelDownloadButtons = new FlowLayoutPanel();
             SuspendLayout();
             // 
             // btnStartSharing
             // 
             btnStartSharing.BackColor = Color.FromArgb(52, 199, 89);
-            btnStartSharing.Location = new Point(17, 306);
+            btnStartSharing.Location = new Point(12, 170);
             btnStartSharing.Name = "btnStartSharing";
             btnStartSharing.Size = new Size(154, 56);
             btnStartSharing.TabIndex = 0;
@@ -41,9 +43,9 @@
             // btnStopSharing
             // 
             btnStopSharing.BackColor = Color.FromArgb(255, 59, 48);
-            btnStopSharing.Location = new Point(191, 309);
+            btnStopSharing.Location = new Point(191, 170);
             btnStopSharing.Name = "btnStopSharing";
-            btnStopSharing.Size = new Size(136, 53);
+            btnStopSharing.Size = new Size(136, 56);
             btnStopSharing.TabIndex = 1;
             btnStopSharing.Text = "Остановить раздачу";
             btnStopSharing.UseVisualStyleBackColor = false;
@@ -52,9 +54,9 @@
             // btnStartDownload
             // 
             btnStartDownload.BackColor = Color.FromArgb(52, 199, 89);
-            btnStartDownload.Location = new Point(415, 309);
+            btnStartDownload.Location = new Point(424, 171);
             btnStartDownload.Name = "btnStartDownload";
-            btnStartDownload.Size = new Size(146, 54);
+            btnStartDownload.Size = new Size(147, 56);
             btnStartDownload.TabIndex = 2;
             btnStartDownload.Text = "Запустить скачивание";
             btnStartDownload.UseVisualStyleBackColor = false;
@@ -63,7 +65,7 @@
             // btnStopDownload
             // 
             btnStopDownload.BackColor = Color.FromArgb(255, 59, 48);
-            btnStopDownload.Location = new Point(599, 307);
+            btnStopDownload.Location = new Point(599, 171);
             btnStopDownload.Name = "btnStopDownload";
             btnStopDownload.Size = new Size(140, 56);
             btnStopDownload.TabIndex = 3;
@@ -74,7 +76,7 @@
             // btnSelectFile
             // 
             btnSelectFile.BackColor = Color.FromArgb(0, 122, 255);
-            btnSelectFile.Location = new Point(20, 233);
+            btnSelectFile.Location = new Point(12, 254);
             btnSelectFile.Name = "btnSelectFile";
             btnSelectFile.Size = new Size(124, 46);
             btnSelectFile.TabIndex = 4;
@@ -85,9 +87,9 @@
             // btnImport
             // 
             btnImport.BackColor = Color.FromArgb(255, 149, 0);
-            btnImport.Location = new Point(582, 233);
+            btnImport.Location = new Point(424, 254);
             btnImport.Name = "btnImport";
-            btnImport.Size = new Size(157, 46);
+            btnImport.Size = new Size(147, 46);
             btnImport.TabIndex = 5;
             btnImport.Text = "Импорт образа";
             btnImport.UseVisualStyleBackColor = false;
@@ -95,21 +97,21 @@
             // 
             // listSharedFiles
             // 
-            listSharedFiles.Location = new Point(20, 170);
+            listSharedFiles.Location = new Point(20, 370);
             listSharedFiles.Name = "listSharedFiles";
-            listSharedFiles.Size = new Size(307, 44);
+            listSharedFiles.Size = new Size(337, 44);
             listSharedFiles.TabIndex = 7;
             // 
             // listDownloadingFiles
             // 
-            listDownloadingFiles.Location = new Point(431, 170);
+            listDownloadingFiles.Location = new Point(406, 370);
             listDownloadingFiles.Name = "listDownloadingFiles";
-            listDownloadingFiles.Size = new Size(308, 44);
+            listDownloadingFiles.Size = new Size(345, 44);
             listDownloadingFiles.TabIndex = 9;
             // 
             // lblShared
             // 
-            lblShared.Location = new Point(96, 132);
+            lblShared.Location = new Point(20, 340);
             lblShared.Name = "lblShared";
             lblShared.Size = new Size(100, 23);
             lblShared.TabIndex = 6;
@@ -124,9 +126,19 @@
             lblDownloading.Text = "Загружается:";
             lblDownloading.Click += lblDownloading_Click;
             // 
+            // panelDownloadButtons
+            // 
+            panelDownloadButtons.AutoScroll = true;
+            panelDownloadButtons.FlowDirection = FlowDirection.TopDown;
+            panelDownloadButtons.Location = new Point(20, 420);
+            panelDownloadButtons.Name = "panelDownloadButtons";
+            panelDownloadButtons.Size = new Size(337, 44);
+            panelDownloadButtons.TabIndex = 10;
+            panelDownloadButtons.WrapContents = false;
+            // 
             // MainForm
             // 
-            ClientSize = new Size(832, 494);
+            ClientSize = new Size(790, 571);
             Controls.Add(btnStartSharing);
             Controls.Add(btnStopSharing);
             Controls.Add(btnStartDownload);
@@ -137,6 +149,7 @@
             Controls.Add(listSharedFiles);
             Controls.Add(lblDownloading);
             Controls.Add(listDownloadingFiles);
+            Controls.Add(panelDownloadButtons);
             Name = "MainForm";
             Text = "Torrent";
             Load += MainForm_Load;

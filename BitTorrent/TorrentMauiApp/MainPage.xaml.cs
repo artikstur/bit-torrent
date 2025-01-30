@@ -76,7 +76,7 @@ public partial class MainPage : ContentPage
 
         string json = JsonSerializer.Serialize(downloadMetaData);
         string jsonFilePath = Path.Combine(folderPath, $"{fileMetaData.FileName}.json");
-        
+
         await File.WriteAllTextAsync(jsonFilePath, json);
 
         await DisplayAlert("Успех", $"Файл {fileMetaData.FileName} успешно сохранен в {folderPath}", "OK");
@@ -97,16 +97,16 @@ public partial class MainPage : ContentPage
         var fileMetaData = JsonSerializer.Deserialize<FileMetaData>(jsonContent);
 
         if (fileMetaData == null) return;
-        
+
         string directoryPath = Path.GetDirectoryName(jsonFilePath)!;
         string newFilePath = Path.Combine(directoryPath, fileMetaData.FileName);
         fileMetaData.FilePath = newFilePath;
 
         fileMetaData.FileStatus = FileStatus.Downloading;
-        
+
         _dowloadingFiles.Add(fileMetaData);
         _client.AddFile(fileMetaData.RootHash, fileMetaData);
-        
+
         await DisplayAlert("Успех", $"Файл {fileMetaData.FileName} успешно импортирован", "OK");
     }
 
@@ -129,4 +129,4 @@ public partial class MainPage : ContentPage
     {
         Console.WriteLine("Скачивание файлов остановлено.");
     }
-} 
+}
