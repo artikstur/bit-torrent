@@ -1,8 +1,8 @@
 ﻿using MerkleTree;
 using TorrentClient;
 
-string filePath = @"C:\Users\artur\OneDrive\Desktop\life.png";
-string torrentPath = @"C:\Users\artur\OneDrive\Desktop\test-torrent\life.png";
+string filePath = @"C:\Users\egor\Desktop\test.png";
+string torrentPath = @"C:\Users\egor\Desktop\test-torrent\test.png";
 int blockSize = 1024; // 1кб
 
 var blocks = FileWorker.SplitFileIntoBlocks(filePath, blockSize);

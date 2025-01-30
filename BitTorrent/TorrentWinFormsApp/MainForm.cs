@@ -1,5 +1,6 @@
 using MerkleTree;
 using System.Text.Json;
+using System.Windows.Forms;
 using TorrentClient;
 
 namespace TorrentWinFormsApp
@@ -13,10 +14,10 @@ namespace TorrentWinFormsApp
         public MainForm()
         {
             InitializeComponent();
-             _client.Start();
+            _client.Start(); //асинхронный метод так то
         }
 
-        private async void OnSelectFileClicked(object sender, EventArgs e)
+        private void OnSelectFileClicked(object sender, EventArgs e)
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
@@ -48,9 +49,7 @@ namespace TorrentWinFormsApp
                     };
 
                     _sharedFiles.Add(fileMetaData);
-                    await _client.AddFile(fileMetaData.RootHash, fileMetaData);
                     listSharedFiles.Items.Add(fileMetaData.FileName);
-
                     CreateDownloadButton(fileMetaData.FileName);
                 }
             }
@@ -123,19 +122,22 @@ namespace TorrentWinFormsApp
                     fileMetaData.FileStatus = FileStatus.Downloading;
 
                     _downloadingFiles.Add(fileMetaData);
-                    await _client.AddFile(fileMetaData.RootHash, fileMetaData);
                     listDownloadingFiles.Items.Add(fileMetaData.FileName);
                 }
             }
         }
 
-        private void OnStartSharingClicked(object sender, EventArgs e)
+        private async void OnStartSharingClicked(object sender, EventArgs e)
         {
             if (_sharedFiles.Count == 0)
             {
                 MessageBox.Show("Файл для раздачи еще не добавлен.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
+            var sharingFile = _sharedFiles[0]; // захаркдкодил прост, первый файл для теста
+
+            await _client.AddFile(sharingFile.RootHash, sharingFile);
 
             MessageBox.Show("Раздача запущена.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -145,13 +147,17 @@ namespace TorrentWinFormsApp
             MessageBox.Show("Раздача остановлена.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void OnStartDownloadClicked(object sender, EventArgs e)
+        private async void OnStartDownloadClicked(object sender, EventArgs e)
         {
-            if (_sharedFiles.Count == 0)
+            if (_downloadingFiles.Count == 0)
             {
                 MessageBox.Show("Образ для раздачи еще не добавлен", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
+            var dowloadingFile = _downloadingFiles[0];  // захаркдкодил прост, первый файл для теста
+
+            await _client.AddFile(dowloadingFile.RootHash, dowloadingFile);
 
             MessageBox.Show("Скачивание запущено.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
