@@ -124,7 +124,6 @@
             lblDownloading.Size = new Size(146, 23);
             lblDownloading.TabIndex = 8;
             lblDownloading.Text = "Загружается:";
-            lblDownloading.Click += lblDownloading_Click;
             // 
             // panelDownloadButtons
             // 
@@ -152,7 +151,6 @@
             Controls.Add(panelDownloadButtons);
             Name = "MainForm";
             Text = "Torrent";
-            Load += MainForm_Load;
             ResumeLayout(false);
         }
     }

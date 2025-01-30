@@ -13,16 +13,23 @@ namespace TorrentWinFormsApp
         public MainForm()
         {
             InitializeComponent();
-            _client.Start();
+             _client.Start();
         }
 
-        private void OnSelectFileClicked(object sender, EventArgs e)
+        private async void OnSelectFileClicked(object sender, EventArgs e)
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string filePath = openFileDialog.FileName;
+
+                    if (_sharedFiles.Count > 0)
+                    {
+                        MessageBox.Show("Файл уже добавлен.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
                     int blockSize = 1024;
                     byte[][] blocks = FileWorker.SplitFileIntoBlocks(filePath, blockSize);
                     long fileSize = FileWorker.GetFileSize(filePath);
@@ -41,7 +48,7 @@ namespace TorrentWinFormsApp
                     };
 
                     _sharedFiles.Add(fileMetaData);
-                    _client.AddFile(fileMetaData.RootHash, fileMetaData);
+                    await _client.AddFile(fileMetaData.RootHash, fileMetaData);
                     listSharedFiles.Items.Add(fileMetaData.FileName);
 
                     CreateDownloadButton(fileMetaData.FileName);
@@ -49,10 +56,11 @@ namespace TorrentWinFormsApp
             }
         }
 
+
         private void CreateDownloadButton(string fileName)
         {
             Button btnDownload = new Button();
-            btnDownload.Text = $"Скачать {fileName}";
+            btnDownload.Text = "Скачать";
             btnDownload.Tag = fileName;
             btnDownload.Size = new Size(200, 30);
             btnDownload.BackColor = Color.FromArgb(0, 122, 255);
@@ -61,7 +69,7 @@ namespace TorrentWinFormsApp
             panelDownloadButtons.Controls.Add(btnDownload);
         }
 
-        private void OnDownloadClicked(string fileName)
+        private async void OnDownloadClicked(string fileName)
         {
             var fileMetaData = _sharedFiles.Find(f => f.FileName == fileName);
             if (fileMetaData == null) return;
@@ -84,14 +92,14 @@ namespace TorrentWinFormsApp
 
                     string json = JsonSerializer.Serialize(downloadMetaData);
                     string jsonFilePath = Path.Combine(folderPath, $"{fileMetaData.FileName}.json");
-                    File.WriteAllText(jsonFilePath, json);
+                    await File.WriteAllTextAsync(jsonFilePath, json);
 
                     MessageBox.Show($"Файл {fileMetaData.FileName} успешно сохранен в {folderPath}", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }
 
-        private void OnImportClicked(object sender, EventArgs e)
+        private async void OnImportClicked(object sender, EventArgs e)
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
@@ -99,17 +107,23 @@ namespace TorrentWinFormsApp
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string jsonFilePath = openFileDialog.FileName;
-                    string jsonContent = File.ReadAllText(jsonFilePath);
+                    string jsonContent = await File.ReadAllTextAsync(jsonFilePath);
 
                     var fileMetaData = JsonSerializer.Deserialize<FileMetaData>(jsonContent);
                     if (fileMetaData == null) return;
+
+                    if (_downloadingFiles.Count > 0)
+                    {
+                        MessageBox.Show("Образ уже добавлен.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
 
                     string directoryPath = Path.GetDirectoryName(jsonFilePath);
                     fileMetaData.FilePath = Path.Combine(directoryPath, fileMetaData.FileName);
                     fileMetaData.FileStatus = FileStatus.Downloading;
 
                     _downloadingFiles.Add(fileMetaData);
-                    _client.AddFile(fileMetaData.RootHash, fileMetaData);
+                    await _client.AddFile(fileMetaData.RootHash, fileMetaData);
                     listDownloadingFiles.Items.Add(fileMetaData.FileName);
                 }
             }
@@ -117,6 +131,12 @@ namespace TorrentWinFormsApp
 
         private void OnStartSharingClicked(object sender, EventArgs e)
         {
+            if (_sharedFiles.Count == 0)
+            {
+                MessageBox.Show("Файл для раздачи еще не добавлен.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             MessageBox.Show("Раздача запущена.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -127,20 +147,18 @@ namespace TorrentWinFormsApp
 
         private void OnStartDownloadClicked(object sender, EventArgs e)
         {
+            if (_sharedFiles.Count == 0)
+            {
+                MessageBox.Show("Образ для раздачи еще не добавлен", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             MessageBox.Show("Скачивание запущено.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void OnStopDownloadClicked(object sender, EventArgs e)
         {
             MessageBox.Show("Скачивание остановлено.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        private void lblDownloading_Click(object sender, EventArgs e)
-        {
-        }
-
-        private void MainForm_Load(object sender, EventArgs e)
-        {
         }
     }
 }
