@@ -14,13 +14,15 @@ public class Client
     private readonly INetworkClient _networkClient = new NetworkClient();
     private readonly ConcurrentDictionary<string, List<ClientData>> _fileProducers = new();
     private CancellationTokenSource _cancellationTokenSource = new();
-    
+
     public async Task Start()
     {
         _cancellationTokenSource = new CancellationTokenSource();
         var token = _cancellationTokenSource.Token;
 
+        Console.WriteLine("Клиент начал запуск...");
         await Task.WhenAll(DownloadFiles(token), StartSharingFiles(token));
+        Console.WriteLine("Клиент завершил запуск.");
     }
 
     public async Task StopSharingFiles()
@@ -39,6 +41,7 @@ public class Client
 
     private async Task StartSharingFiles(CancellationToken token)
     {
+        Console.WriteLine("Я расширил свои файлы");
         var sendBlocksTask = Task.Run(() => ProcessClientMessage(token), token);
         var broadcastTask = Task.Run(() => AnswerAsPeer(token), token);
 
@@ -50,24 +53,31 @@ public class Client
         var buffer = new byte[MaxPacketSize];
         while (!token.IsCancellationRequested)
         {
-            var remoteEndPoint = await _networkClient.ReceiveClientMessage(buffer);
-            if (remoteEndPoint is null) continue;
-
-            if (buffer.IsNeedBlock())
+            try
             {
-                await HandleNeedBlockMessage(buffer, remoteEndPoint);
-                continue;
+                var remoteEndPoint = await _networkClient.ReceiveClientMessage(buffer);
+                if (remoteEndPoint is null) continue;
+
+                if (buffer.IsNeedBlock())
+                {
+                    await HandleNeedBlockMessage(buffer, remoteEndPoint);
+                    continue;
+                }
+
+                if (buffer.IsGiveBlock())
+                {
+                    HandleGiveBlockMessage(buffer);
+                    continue;
+                }
+
+                if (buffer.IsBePeer())
+                {
+                    HandleBePeerMessage(buffer, remoteEndPoint);
+                }
             }
-
-            if (buffer.IsGiveBlock())
+            catch (Exception ex)
             {
-                HandleGiveBlockMessage(buffer);
-                continue;
-            }
-
-            if (buffer.IsBePeer())
-            {
-                HandleBePeerMessage(buffer, remoteEndPoint);
+                Console.WriteLine($"Ошибка при обработке сообщения: {ex.Message}");
             }
         }
 
@@ -96,6 +106,7 @@ public class Client
     private void HandleGiveBlockMessage(byte[] buffer)
     {
         var request = buffer.GetBlockPacketResponse();
+
         _ = Task.Run(() =>
         {
             Console.WriteLine($"Мне обратно пришел блок с номером {request.BlockIndex}");
@@ -145,7 +156,7 @@ public class Client
                     return existingClients;
                 });
 
-            // Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
+            Console.WriteLine($"Добавлен новый пир для файла с хэшем: {hash}");
         });
     }
 
@@ -173,14 +184,15 @@ public class Client
 
     private async Task DownloadFiles(CancellationToken token)
     {
-        var filesInProcess = _clientFiles
-            .Where(f => f.Value.FileStatus == FileStatus.Downloading)
-            .ToDictionary(f => f.Key, f => f.Value);
-
+     
         var searchPeersTask = Task.Run(async () =>
         {
             while (!token.IsCancellationRequested)
             {
+                var filesInProcess = _clientFiles
+                    .Where(f => f.Value.FileStatus == FileStatus.Downloading)
+                    .ToDictionary(f => f.Key, f => f.Value);
+
                 foreach (var fileMetaData in filesInProcess)
                 {
                     await SearchPeers(fileMetaData.Key);
@@ -194,6 +206,8 @@ public class Client
                 }
 
                 token.ThrowIfCancellationRequested();
+
+                Console.WriteLine("Я заново ищу");
             }
         }, token);
     }
@@ -287,10 +301,11 @@ public class Client
             .WithCommand(CommandType.DiscoverPeers)
             .WithContent(Encoding.UTF8.GetBytes(hash.CreatePeerRequest())));
     }
-    
+
     public async Task AddFile(string rootHash, FileMetaData fileMetaData)
     {
-        _clientFiles.TryAdd(rootHash, fileMetaData);
+        _clientFiles.Add(rootHash, fileMetaData);
+        Console.WriteLine($"Файл с rootHash {rootHash} добавлен.");
     }
 
     public async Task<List<FileMetaData>> GetFiles()
