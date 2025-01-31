@@ -28,30 +28,45 @@ namespace TorrentWinFormsApp
 
         private async void OnSelectFileClicked(object sender, EventArgs e)
         {
-            try { } catch { } finally
+            try
             {
-                string filePath = @"C:\Users\artur\OneDrive\Desktop\life.png";
-                int blockSize = 1024; // 1кб
-                var blocks = FileWorker.SplitFileIntoBlocks(filePath, blockSize);
-                var merkleTree = new ByteMerkleTree(blocks);
-                var auditPath = merkleTree.GetAuditPath(2);
-                var isValid = merkleTree.VerifyBlock(blocks[1], 1, auditPath);
+                using var openFileDialog = new OpenFileDialog();
+                openFileDialog.Filter = "All Files (*.*)|*.*";
+                openFileDialog.Title = "Выберите файл для расшаривания";
 
-                var sharingFile = new FileMetaData
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    FileStatus = FileStatus.Sharing,
-                    FilePath = filePath,
-                    BlockSize = blockSize,
-                    TotalBlocks = blocks.Length,
-                    RootHash = BitConverter.ToString(merkleTree.Root.Hash),
-                    Blocks = blocks,
-                    FileSize = FileWorker.GetFileSize(filePath),
-                };
+                    string filePath = openFileDialog.FileName;
+                    int blockSize = 1024; // 1кб
 
-                await _client.AddFile(sharingFile.RootHash, sharingFile);
-                _sharedFiles.Add(sharingFile);
-                listSharedFiles.Items.Add(sharingFile.FileName);
-                CreateDownloadButton(sharingFile.FileName);
+                    var blocks = FileWorker.SplitFileIntoBlocks(filePath, blockSize);
+
+                    var merkleTree = new ByteMerkleTree(blocks);
+                    var auditPath = merkleTree.GetAuditPath(2);
+                    var isValid = merkleTree.VerifyBlock(blocks[1], 1, auditPath);
+
+                    var sharingFile = new FileMetaData
+                    {
+                        FileStatus = FileStatus.Sharing,
+                        FilePath = filePath,
+                        BlockSize = blockSize,
+                        TotalBlocks = blocks.Length,
+                        RootHash = BitConverter.ToString(merkleTree.Root.Hash),
+                        Blocks = blocks,
+                        FileSize = FileWorker.GetFileSize(filePath),
+                        FileName = Path.GetFileName(filePath)
+                    };
+
+                    await _client.AddFile(sharingFile.RootHash, sharingFile);
+                    _sharedFiles.Add(sharingFile);
+
+                    listSharedFiles.Items.Add(sharingFile.FileName);
+                    CreateDownloadButton(sharingFile.FileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Произошла ошибка: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -71,61 +86,80 @@ namespace TorrentWinFormsApp
         private async Task OnDownloadClicked(string fileName)
         {
             var fileMetaData = _sharedFiles.Find(f => f.FileName == fileName);
-            if (fileMetaData == null) return;
+            if (fileMetaData == null)
+            {
+                MessageBox.Show("Файл не найден.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
-            using FolderBrowserDialog folderDialog = new FolderBrowserDialog();
+            using var folderDialog = new FolderBrowserDialog();
+            folderDialog.Description = "Выберите папку для сохранения JSON-файла";
+            folderDialog.ShowNewFolderButton = true;
+
             if (folderDialog.ShowDialog() == DialogResult.OK)
             {
-                string folderPath = folderDialog.SelectedPath;
-                var downloadMetaData = new FileMetaData
+                string selectedFolder = folderDialog.SelectedPath;
+
+                var downloadFileMetaData = new FileMetaData
                 {
-                    RootHash = fileMetaData.RootHash,
                     FileStatus = FileStatus.Downloading,
-                    FileName = fileMetaData.FileName,
-                    FileSize = fileMetaData.FileSize,
+                    FilePath = null,
                     BlockSize = fileMetaData.BlockSize,
                     TotalBlocks = fileMetaData.TotalBlocks,
-                    Blocks = new byte[][] { }
+                    RootHash = fileMetaData.RootHash,
+                    Blocks = null,
+                    FileSize = fileMetaData.FileSize,
+                    FileName = fileMetaData.FileName
                 };
 
-                string json = JsonSerializer.Serialize(downloadMetaData);
-                string jsonFilePath = Path.Combine(folderPath, $"{fileMetaData.FileName}.json");
+                string json = JsonSerializer.Serialize(downloadFileMetaData);
+
+                string jsonFilePath = Path.Combine(selectedFolder, $"{fileName}.json");
                 await File.WriteAllTextAsync(jsonFilePath, json);
 
-                MessageBox.Show($"Файл {fileMetaData.FileName} успешно сохранен в {folderPath}", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"Образ успешно сохранен: {jsonFilePath}", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
         private async void OnImportClicked(object sender, EventArgs e)
         {
-            try { }
-            catch { }
-            finally 
+            try
             {
-                string filePath = @"C:\Users\artur\OneDrive\Desktop\life.png";
-                string torrentPath = @"C:\Users\artur\OneDrive\Desktop\test-torrent\life.png";
-                int blockSize = 1024; // 1кб
-                var blocks = FileWorker.SplitFileIntoBlocks(filePath, blockSize);
-                var merkleTree = new ByteMerkleTree(blocks);
-                var auditPath = merkleTree.GetAuditPath(2);
-                var isValid = merkleTree.VerifyBlock(blocks[1], 1, auditPath);
+                using var openFileDialog = new OpenFileDialog();
+                openFileDialog.Filter = "JSON Files (*.json)|*.json"; // Фильтр для выбора JSON-файлов
+                openFileDialog.Title = "Выберите JSON-файл для импорта";
 
-                var downloadingFile = new FileMetaData
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    FileStatus = FileStatus.Downloading,
-                    FilePath = torrentPath,
-                    BlockSize = blockSize,
-                    TotalBlocks = blocks.Length,
-                    RootHash = BitConverter.ToString(merkleTree.Root.Hash),
-                    Blocks = new byte[blocks.Length][],
-                };
+                    string jsonFilePath = openFileDialog.FileName;
+                    string json = await File.ReadAllTextAsync(jsonFilePath);
 
-                await _client.AddFile(downloadingFile.RootHash, downloadingFile);
-                _downloadingFiles.Add(downloadingFile);
-                listDownloadingFiles.Items.Add(downloadingFile.FileName);
+                    var downloadingFile = JsonSerializer.Deserialize<FileMetaData>(json);
+
+                    if (downloadingFile == null)
+                    {
+                        MessageBox.Show("Не удалось прочитать JSON-файл.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    downloadingFile.Blocks = new byte[downloadingFile.TotalBlocks][];
+                    downloadingFile.FilePath = Path.Combine(
+                        Path.GetDirectoryName(jsonFilePath),
+                        downloadingFile.FileName
+                    );
+
+                    await _client.AddFile(downloadingFile.RootHash, downloadingFile);
+                    _downloadingFiles.Add(downloadingFile);
+                    listDownloadingFiles.Items.Add(downloadingFile.FileName);
+
+                    MessageBox.Show("Образ успешно импортирован.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при импорте файла: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
         private async void OnStartSharingClicked(object sender, EventArgs e)
         {
             if (_sharedFiles.Count == 0)
@@ -133,10 +167,6 @@ namespace TorrentWinFormsApp
                 MessageBox.Show("Файл для раздачи еще не добавлен.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
-            var sharingFile = _sharedFiles[0]; // захаркдкодил прост, первый файл для теста
-
-            await _client.AddFile(sharingFile.RootHash, sharingFile);
 
             MessageBox.Show("Раздача запущена.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -153,10 +183,6 @@ namespace TorrentWinFormsApp
                 MessageBox.Show("Образ для раздачи еще не добавлен", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
-            var dowloadingFile = _downloadingFiles[0];  // захаркдкодил прост, первый файл для теста
-
-            await _client.AddFile(dowloadingFile.RootHash, dowloadingFile);
 
             MessageBox.Show("Скачивание запущено.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
