@@ -15,6 +15,11 @@ public class Client
     private readonly ConcurrentDictionary<string, List<ClientData>> _fileProducers = new();
     private CancellationTokenSource _cancellationTokenSource = new();
 
+    public event Action<FileMetaData>? FileStatusChanged;
+    public event Action? DownloadStatusChanged;
+
+
+
     public async Task Start()
     {
         _cancellationTokenSource = new CancellationTokenSource();
@@ -241,6 +246,9 @@ public class Client
         {
             Console.WriteLine($"Загрузка завершена для файла {fileMetaData.FileName}");
             fileMetaData.FileStatus = FileStatus.Sharing;
+            FileStatusChanged?.Invoke(fileMetaData);
+            DownloadStatusChanged?.Invoke();
+
             await FileWorker.WriteBlocksToFile(fileMetaData);
         }
     }
@@ -306,6 +314,18 @@ public class Client
     {
         _clientFiles.Add(rootHash, fileMetaData);
         Console.WriteLine($"Файл с rootHash {rootHash} добавлен.");
+    }
+
+    public async Task RemoveFile(string rootHash)
+    {
+        if (_clientFiles.Remove(rootHash))
+        {
+            Console.WriteLine($"Файл с rootHash {rootHash} удален.");
+        }
+        else
+        {
+            Console.WriteLine($"Файл с rootHash {rootHash} не найден.");
+        }
     }
 
     public async Task<List<FileMetaData>> GetFiles()

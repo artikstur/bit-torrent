@@ -1,4 +1,4 @@
-using MerkleTree;
+Ôªøusing MerkleTree;
 using System.Text.Json;
 using System.Windows.Forms;
 using TorrentClient;
@@ -16,6 +16,8 @@ namespace TorrentWinFormsApp
         public MainForm()
         {
             _client = new Client();
+            _client.FileStatusChanged += OnFileStatusChanged;
+            _client.DownloadStatusChanged += OnDownloadStatusChanged;
             _ = StartClient();
             InitializeComponent();
         }
@@ -34,12 +36,12 @@ namespace TorrentWinFormsApp
             {
                 using var openFileDialog = new OpenFileDialog();
                 openFileDialog.Filter = "All Files (*.*)|*.*";
-                openFileDialog.Title = "¬˚·ÂËÚÂ Ù‡ÈÎ ‰Îˇ ‡Á‰‡˜Ë";
+                openFileDialog.Title = "–í—ã–±–µ—Ä–∏—Ç–µ —Ñ–∞–π–ª –¥–ª—è —Ä–∞–∑–¥–∞—á–∏";
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string filePath = openFileDialog.FileName;
-                    int blockSize = 1024; // 1Í·
+                    int blockSize = 1024; // 1–∫–±
 
                     var blocks = FileWorker.SplitFileIntoBlocks(filePath, blockSize);
 
@@ -59,15 +61,13 @@ namespace TorrentWinFormsApp
                         FileName = Path.GetFileName(filePath)
                     };
 
-                    await _client.AddFile(sharingFile.RootHash, sharingFile);
                     _sharedFiles.Add(sharingFile);
-
-                    AddRow(sharingFile.FileName, sharingFile.FileSize, sharingFile.FileStatus);
+                    AddRow(sharingFile.FileName, sharingFile.FileSize, sharingFile.FileStatus, "Sharing");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"œÓËÁÓ¯Î‡ Ó¯Ë·Í‡: {ex.Message}", "Œ¯Ë·Í‡", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"–ü—Ä–æ–∏–∑–æ—à–ª–∞ –æ—à–∏–±–∫–∞: {ex.Message}", "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -77,12 +77,12 @@ namespace TorrentWinFormsApp
             {
                 using var openFileDialog = new OpenFileDialog();
                 openFileDialog.Filter = "All Files (*.*)|*.*";
-                openFileDialog.Title = "¬˚·ÂËÚÂ Ù‡ÈÎ ‰Îˇ ‡Ò¯‡Ë‚‡ÌËˇ";
+                openFileDialog.Title = "–í—ã–±–µ—Ä–∏—Ç–µ —Ñ–∞–π–ª –¥–ª—è —Ä–∞—Å—à–∞—Ä–∏–≤–∞–Ω–∏—è";
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string filePath = openFileDialog.FileName;
-                    int blockSize = 1024; // 1Í·
+                    int blockSize = 1024; // 1–∫–±
 
                     var blocks = FileWorker.SplitFileIntoBlocks(filePath, blockSize);
 
@@ -107,7 +107,7 @@ namespace TorrentWinFormsApp
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"œÓËÁÓ¯Î‡ Ó¯Ë·Í‡: {ex.Message}", "Œ¯Ë·Í‡", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"–ü—Ä–æ–∏–∑–æ—à–ª–∞ –æ—à–∏–±–∫–∞: {ex.Message}", "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -115,10 +115,14 @@ namespace TorrentWinFormsApp
         private void CreateDownloadButton(FileMetaData fileMetaData)
         {
             _btnDownload = new Button();
-            _btnDownload.Text = "—Í‡˜‡Ú¸";
+            _btnDownload.Text = "–°–∫–∞—á–∞—Ç—å";
             _btnDownload.Tag = fileMetaData.FileName;
-            _btnDownload.Size = new Size(200, 30);
-            _btnDownload.BackColor = Color.FromArgb(0, 122, 255);
+            _btnDownload.Size = new Size(200, 36);
+            _btnDownload.BackColor = Color.FromArgb(80, 0, 255);
+            _btnDownload.ForeColor = Color.White;
+            _btnDownload.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            _btnDownload.FlatStyle = FlatStyle.Flat;
+            _btnDownload.FlatAppearance.BorderSize = 0;
             _btnDownload.Click += (sender, e) => OnDownloadClicked(fileMetaData);
 
             panelDownloadButtons.Controls.Add(_btnDownload);
@@ -127,7 +131,7 @@ namespace TorrentWinFormsApp
         private async Task OnDownloadClicked(FileMetaData fileMetaData)
         {
             using var folderDialog = new FolderBrowserDialog();
-            folderDialog.Description = "¬˚·ÂËÚÂ Ô‡ÔÍÛ ‰Îˇ ÒÓı‡ÌÂÌËˇ JSON-Ù‡ÈÎ‡";
+            folderDialog.Description = "–í—ã–±–µ—Ä–∏—Ç–µ –ø–∞–ø–∫—É –¥–ª—è —Å–æ—Ö—Ä–∞–Ω–µ–Ω–∏—è JSON-—Ñ–∞–π–ª–∞";
             folderDialog.ShowNewFolderButton = true;
 
             if (folderDialog.ShowDialog() == DialogResult.OK)
@@ -151,7 +155,7 @@ namespace TorrentWinFormsApp
                 string jsonFilePath = Path.Combine(selectedFolder, $"{fileMetaData.FileName}.json");
                 await File.WriteAllTextAsync(jsonFilePath, json);
 
-                MessageBox.Show($"Œ·‡Á ÛÒÔÂ¯ÌÓ ÒÓı‡ÌÂÌ: {jsonFilePath}", "”ÒÔÂı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"–û–±—Ä–∞–∑ —É—Å–ø–µ—à–Ω–æ —Å–æ—Ö—Ä–∞–Ω–µ–Ω: {jsonFilePath}", "–£—Å–ø–µ—Ö", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 panelDownloadButtons.Controls.Remove(_btnDownload);
             }
         }
@@ -161,8 +165,8 @@ namespace TorrentWinFormsApp
             try
             {
                 using var openFileDialog = new OpenFileDialog();
-                openFileDialog.Filter = "JSON Files (*.json)|*.json"; // ‘ËÎ¸Ú ‰Îˇ ‚˚·Ó‡ JSON-Ù‡ÈÎÓ‚
-                openFileDialog.Title = "¬˚·ÂËÚÂ JSON-Ù‡ÈÎ ‰Îˇ ËÏÔÓÚ‡";
+                openFileDialog.Filter = "JSON Files (*.json)|*.json"; // –§–∏–ª—å—Ç—Ä –¥–ª—è –≤—ã–±–æ—Ä–∞ JSON-—Ñ–∞–π–ª–æ–≤
+                openFileDialog.Title = "–í—ã–±–µ—Ä–∏—Ç–µ JSON-—Ñ–∞–π–ª –¥–ª—è –∏–º–ø–æ—Ä—Ç–∞";
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
@@ -173,7 +177,7 @@ namespace TorrentWinFormsApp
 
                     if (downloadingFile == null)
                     {
-                        MessageBox.Show("ÕÂ Û‰‡ÎÓÒ¸ ÔÓ˜ËÚ‡Ú¸ JSON-Ù‡ÈÎ.", "Œ¯Ë·Í‡", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("–ù–µ —É–¥–∞–ª–æ—Å—å –ø—Ä–æ—á–∏—Ç–∞—Ç—å JSON-—Ñ–∞–π–ª.", "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
 
@@ -183,27 +187,27 @@ namespace TorrentWinFormsApp
                         downloadingFile.FileName
                     );
 
-                    await _client.AddFile(downloadingFile.RootHash, downloadingFile);
                     _downloadingFiles.Add(downloadingFile);
 
-                    AddRow(downloadingFile.FileName, downloadingFile.FileSize, downloadingFile.FileStatus);
-
-                    MessageBox.Show("Œ·‡Á ÛÒÔÂ¯ÌÓ ËÏÔÓÚËÓ‚‡Ì.", "”ÒÔÂı", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    AddRow(downloadingFile.FileName, downloadingFile.FileSize, downloadingFile.FileStatus, "Downloading");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Œ¯Ë·Í‡ ÔË ËÏÔÓÚÂ Ù‡ÈÎ‡: {ex.Message}", "Œ¯Ë·Í‡", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"–û—à–∏–±–∫–∞ –ø—Ä–∏ –∏–º–ø–æ—Ä—Ç–µ —Ñ–∞–π–ª–∞: {ex.Message}", "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void AddRow(string fileName, long fileSize, FileStatus fileStatus)
+        private void AddRow(string fileName, long fileSize, FileStatus fileStatus, string fileType)
         {
-
             var fileSizeString = FormatBytes(fileSize);
-            var fileStatusString = fileStatus.ToString();
-            dataGridView.Rows.Add(fileName, fileSizeString, fileStatusString);
+            var fileStatusString = "In waiting";
+
+            int rowIndex = dataGridView.Rows.Add(fileName, fileSizeString, fileStatusString);
+
+            dataGridView.Rows[rowIndex].Cells["FileTypeColumn"].Value = fileType;
         }
+
 
         private static string FormatBytes(long bytes)
         {
@@ -220,39 +224,202 @@ namespace TorrentWinFormsApp
             return $"{size} {sizes[order]}";
         }
 
-        private async void OnStartSharingClicked(object sender, EventArgs e)
+        private async void OnStartSharingClicked(string fileName)
         {
-            if (_sharedFiles.Count == 0)
+            var sharingFile = _sharedFiles.Where(f => f.FileName == fileName).FirstOrDefault();
+
+            if (sharingFile == null)
             {
-                MessageBox.Show("‘‡ÈÎ ‰Îˇ ‡Á‰‡˜Ë Â˘Â ÌÂ ‰Ó·‡‚ÎÂÌ.", "Œ¯Ë·Í‡", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("–§–∞–π–ª –¥–ª—è —Ä–∞–∑–¥–∞—á–∏ –µ—â–µ –Ω–µ –¥–æ–±–∞–≤–ª–µ–Ω.", "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            MessageBox.Show("–‡Á‰‡˜‡ Á‡ÔÛ˘ÂÌ‡.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            OnFileStatusChanged(sharingFile);
+            await _client.AddFile(sharingFile.RootHash, sharingFile);
+
+
+            MessageBox.Show("–†–∞–∑–¥–∞—á–∞ –∑–∞–ø—É—â–µ–Ω–∞.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void OnStopSharingClicked(object sender, EventArgs e)
+        private async void OnStopSharingClicked(string fileName)
         {
-            MessageBox.Show("–‡Á‰‡˜‡ ÓÒÚ‡ÌÓ‚ÎÂÌ‡.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
+            var sharingFile = _sharedFiles.FirstOrDefault(f => f.FileName == fileName);
 
-        private async void OnStartDownloadClicked(object sender, EventArgs e)
-        {
-            if (_downloadingFiles.Count == 0)
+            if (sharingFile == null)
             {
-                MessageBox.Show("Œ·‡Á ‰Îˇ ‡Á‰‡˜Ë Â˘Â ÌÂ ‰Ó·‡‚ÎÂÌ", "Œ¯Ë·Í‡", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("–§–∞–π–ª –Ω–µ –Ω–∞–π–¥–µ–Ω —Å—Ä–µ–¥–∏ —Ä–∞–∑–¥–∞–≤–∞–µ–º—ã—Ö.", "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            MessageBox.Show("—Í‡˜Ë‚‡ÌËÂ Á‡ÔÛ˘ÂÌÓ.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            foreach (DataGridViewRow row in dataGridView.Rows)
+            {
+                if (row.Cells[0].Value.ToString() == sharingFile.FileName)
+                {
+                    row.Cells[2].Value = "Paused";
+                    break;
+                }
+            }
+
+            await _client.RemoveFile(sharingFile.RootHash);
+
+            MessageBox.Show("–†–∞–∑–¥–∞—á–∞ –æ—Å—Ç–∞–Ω–æ–≤–ª–µ–Ω–∞.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void OnStopDownloadClicked(object sender, EventArgs e)
+        private async void OnStartDownloadClicked(string fileName)
         {
-            MessageBox.Show("—Í‡˜Ë‚‡ÌËÂ ÓÒÚ‡ÌÓ‚ÎÂÌÓ.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var downloadingFile = _downloadingFiles.Where(f => f.FileName == fileName).FirstOrDefault();
+
+            if (downloadingFile == null)
+            {
+                MessageBox.Show("–û–±—Ä–∞–∑ –¥–ª—è —Ä–∞–∑–¥–∞—á–∏ –µ—â–µ –Ω–µ –¥–æ–±–∞–≤–ª–µ–Ω", "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            OnFileStatusChanged(downloadingFile);
+            await _client.AddFile(downloadingFile.RootHash, downloadingFile);
+
+
+            MessageBox.Show("–°–∫–∞—á–∏–≤–∞–Ω–∏–µ –∑–∞–ø—É—â–µ–Ω–æ.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private async void OnStopDownloadClicked(string fileName)
+        {
+            var downloadingFile = _downloadingFiles.Where(f => f.FileName == fileName).FirstOrDefault();
+
+            if (downloadingFile == null)
+            {
+                MessageBox.Show("–§–∞–π–ª –Ω–µ –Ω–∞–π–¥–µ–Ω —Å—Ä–µ–¥–∏ —Å–∫–∞—á–∏–≤–∞–µ–º—ã—Ö.", "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await _client.RemoveFile(downloadingFile.RootHash);
+
+            MessageBox.Show("–°–∫–∞—á–∏–≤–∞–Ω–∏–µ –æ—Å—Ç–∞–Ω–æ–≤–ª–µ–Ω–æ.", "Torrent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+
+
+        private void OnFileStatusChanged(FileMetaData file)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => OnFileStatusChanged(file)));
+                return;
+            }
+
+            foreach (DataGridViewRow row in dataGridView.Rows)
+            {
+                if (row.Cells[0].Value.ToString() == file.FileName)
+                {
+                    row.Cells[2].Value = file.FileStatus.ToString();
+                    break;
+                }
+            }
+        }
+
+        private void OnDownloadStatusChanged()
+        {
+            foreach (DataGridViewRow row in dataGridView.Rows)
+            {
+                DataGridViewCell cell = row.Cells["DownloadStatusColumn"];
+
+                if (cell.Value == null || string.IsNullOrWhiteSpace(cell.Value.ToString()))
+                {
+                    cell.Style.BackColor = Color.Green;
+                    cell.Style.ForeColor = Color.White;
+                    cell.Value = "‚úì";
+                    cell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                }
+            }
         }
 
         private void dataGridView_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            string columnName = dataGridView.Columns[e.ColumnIndex].Name;
+            string fileName = (string)dataGridView.Rows[e.RowIndex].Cells[0].Value;
+            string fileType = (string)dataGridView.Rows[e.RowIndex].Cells[7].Value;
+
+            if (columnName == "startButtonColumn")
+            {
+                if (fileType == "Sharing")
+                    OnStartSharingClicked(fileName);
+                else if (fileType == "Downloading")
+                    OnStartDownloadClicked(fileName);
+            }
+            else if (columnName == "stopButtonColumn")
+            {
+                if (fileType == "Sharing")
+                    OnStopSharingClicked(fileName);
+                else if (fileType == "Downloading")
+                    OnStopDownloadClicked(fileName);
+            }
+            else if (columnName == "deleteButtonColumn")
+            {
+                DialogResult result = MessageBox.Show("–í—ã —É–≤–µ—Ä–µ–Ω—ã, —á—Ç–æ —Ö–æ—Ç–∏—Ç–µ —É–¥–∞–ª–∏—Ç—å —ç—Ç–æ—Ç —Ñ–∞–π–ª?", "–ü–æ–¥—Ç–≤–µ—Ä–∂–¥–µ–Ω–∏–µ", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (result == DialogResult.Yes)
+                {
+                    if (fileType == "Sharing")
+                    {
+                        var sharingFile = _sharedFiles.Where(f => f.FileName == fileName).FirstOrDefault();
+                        _sharedFiles.RemoveAll(f => f.FileName == fileName);
+                        _client.RemoveFile(sharingFile.RootHash);
+                    }
+                    else if (fileType == "Downloading")
+                    {
+                        var downloadingFile = _downloadingFiles.Where(f => f.FileName == fileName).FirstOrDefault();
+                        _downloadingFiles.RemoveAll(f => f.FileName == fileName);
+                        _client.RemoveFile(downloadingFile.RootHash);
+                    }
+
+                    dataGridView.Rows.RemoveAt(e.RowIndex);
+                }
+            }
+        }
+
+        private void DataGridView_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
+        {
+            try
+            {
+                DataGridView grid = sender as DataGridView;
+                if (grid != null)
+                {
+                    using (SolidBrush brush = new SolidBrush(grid.RowHeadersDefaultCellStyle.ForeColor))
+                    {
+                        string rowNumber = (e.RowIndex + 1).ToString();
+                        e.Graphics.DrawString(rowNumber, grid.Font, brush,
+                            e.RowBounds.Location.X + 10, e.RowBounds.Location.Y + 4);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("–û—à–∏–±–∫–∞ –≤ –Ω—É–º–µ—Ä–∞—Ü–∏–∏ —Å—Ç—Ä–æ–∫: " + ex.Message, "–û—à–∏–±–∫–∞", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lblImport_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lblCreateFileImage_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void panelDownloadButtons_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void lblSelectFile_Click(object sender, EventArgs e)
         {
 
         }
