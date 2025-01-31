@@ -8,11 +8,9 @@
         private System.Windows.Forms.Button btnStopDownload;
         private System.Windows.Forms.Button btnSelectFile;
         private System.Windows.Forms.Button btnImport;
-        private System.Windows.Forms.ListBox listSharedFiles;
-        private System.Windows.Forms.ListBox listDownloadingFiles;
-        private System.Windows.Forms.Label lblShared;
-        private System.Windows.Forms.Label lblDownloading;
+        private System.Windows.Forms.Button btnCreateFileImage;
         private FlowLayoutPanel panelDownloadButtons;
+        private DataGridView dataGridView;
 
         private void InitializeComponent()
         {
@@ -22,11 +20,13 @@
             btnStopDownload = new Button();
             btnSelectFile = new Button();
             btnImport = new Button();
-            listSharedFiles = new ListBox();
-            listDownloadingFiles = new ListBox();
-            lblShared = new Label();
-            lblDownloading = new Label();
+            btnCreateFileImage = new Button();
             panelDownloadButtons = new FlowLayoutPanel();
+            dataGridView = new DataGridView();
+            dataGridViewTextBoxColumn1 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn2 = new DataGridViewTextBoxColumn();
+            dataGridViewTextBoxColumn3 = new DataGridViewTextBoxColumn();
+            ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
             SuspendLayout();
             // 
             // btnStartSharing
@@ -43,7 +43,7 @@
             // btnStopSharing
             // 
             btnStopSharing.BackColor = Color.FromArgb(255, 59, 48);
-            btnStopSharing.Location = new Point(191, 170);
+            btnStopSharing.Location = new Point(205, 171);
             btnStopSharing.Name = "btnStopSharing";
             btnStopSharing.Size = new Size(136, 56);
             btnStopSharing.TabIndex = 1;
@@ -76,83 +76,98 @@
             // btnSelectFile
             // 
             btnSelectFile.BackColor = Color.FromArgb(0, 122, 255);
-            btnSelectFile.Location = new Point(12, 254);
+            btnSelectFile.Location = new Point(75, 93);
             btnSelectFile.Name = "btnSelectFile";
-            btnSelectFile.Size = new Size(124, 46);
+            btnSelectFile.Size = new Size(266, 46);
             btnSelectFile.TabIndex = 4;
-            btnSelectFile.Text = "Выбрать файл";
+            btnSelectFile.Text = "Загрузить файл для раздачи";
             btnSelectFile.UseVisualStyleBackColor = false;
-            btnSelectFile.Click += OnSelectFileClicked;
+            btnSelectFile.Click += OnSelectSharingFileClicked;
             // 
             // btnImport
             // 
             btnImport.BackColor = Color.FromArgb(255, 149, 0);
-            btnImport.Location = new Point(424, 254);
+            btnImport.Location = new Point(412, 93);
             btnImport.Name = "btnImport";
-            btnImport.Size = new Size(147, 46);
+            btnImport.Size = new Size(278, 46);
             btnImport.TabIndex = 5;
-            btnImport.Text = "Импорт образа";
+            btnImport.Text = "Загрузить образ для скачивания";
             btnImport.UseVisualStyleBackColor = false;
             btnImport.Click += OnImportClicked;
             // 
-            // listSharedFiles
+            // btnCreateFileImage
             // 
-            listSharedFiles.Location = new Point(20, 370);
-            listSharedFiles.Name = "listSharedFiles";
-            listSharedFiles.Size = new Size(337, 44);
-            listSharedFiles.TabIndex = 7;
-            // 
-            // listDownloadingFiles
-            // 
-            listDownloadingFiles.Location = new Point(406, 370);
-            listDownloadingFiles.Name = "listDownloadingFiles";
-            listDownloadingFiles.Size = new Size(345, 44);
-            listDownloadingFiles.TabIndex = 9;
-            // 
-            // lblShared
-            // 
-            lblShared.Location = new Point(20, 340);
-            lblShared.Name = "lblShared";
-            lblShared.Size = new Size(100, 23);
-            lblShared.TabIndex = 6;
-            lblShared.Text = "Раздается:";
-            // 
-            // lblDownloading
-            // 
-            lblDownloading.Location = new Point(517, 132);
-            lblDownloading.Name = "lblDownloading";
-            lblDownloading.Size = new Size(146, 23);
-            lblDownloading.TabIndex = 8;
-            lblDownloading.Text = "Загружается:";
+            btnCreateFileImage.BackColor = Color.FromArgb(255, 149, 0);
+            btnCreateFileImage.Location = new Point(12, 12);
+            btnCreateFileImage.Name = "btnCreateFileImage";
+            btnCreateFileImage.Size = new Size(178, 46);
+            btnCreateFileImage.TabIndex = 5;
+            btnCreateFileImage.Text = "Создать образ файла";
+            btnCreateFileImage.UseVisualStyleBackColor = false;
+            btnCreateFileImage.Click += OnSelectCreateImageFileClicked;
             // 
             // panelDownloadButtons
             // 
             panelDownloadButtons.AutoScroll = true;
             panelDownloadButtons.FlowDirection = FlowDirection.TopDown;
-            panelDownloadButtons.Location = new Point(20, 420);
+            panelDownloadButtons.Location = new Point(205, 14);
             panelDownloadButtons.Name = "panelDownloadButtons";
-            panelDownloadButtons.Size = new Size(337, 44);
+            panelDownloadButtons.Size = new Size(234, 44);
             panelDownloadButtons.TabIndex = 10;
             panelDownloadButtons.WrapContents = false;
+            // 
+            // dataGridView
+            // 
+            dataGridView.ColumnHeadersHeight = 29;
+            dataGridView.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn1, dataGridViewTextBoxColumn2, dataGridViewTextBoxColumn3 });
+            dataGridView.Location = new Point(5, 359);
+            dataGridView.Name = "dataGridView";
+            dataGridView.RowHeadersWidth = 51;
+            dataGridView.Size = new Size(773, 200);
+            dataGridView.TabIndex = 0;
+            dataGridView.CellContentClick += dataGridView_CellContentClick;
+            // 
+            // dataGridViewTextBoxColumn1
+            // 
+            dataGridViewTextBoxColumn1.HeaderText = "Название файла";
+            dataGridViewTextBoxColumn1.MinimumWidth = 6;
+            dataGridViewTextBoxColumn1.Name = "dataGridViewTextBoxColumn1";
+            dataGridViewTextBoxColumn1.Width = 200;
+            // 
+            // dataGridViewTextBoxColumn2
+            // 
+            dataGridViewTextBoxColumn2.HeaderText = "Размер файла";
+            dataGridViewTextBoxColumn2.MinimumWidth = 6;
+            dataGridViewTextBoxColumn2.Name = "dataGridViewTextBoxColumn2";
+            dataGridViewTextBoxColumn2.Width = 125;
+            // 
+            // dataGridViewTextBoxColumn3
+            // 
+            dataGridViewTextBoxColumn3.HeaderText = "Состояние";
+            dataGridViewTextBoxColumn3.MinimumWidth = 6;
+            dataGridViewTextBoxColumn3.Name = "dataGridViewTextBoxColumn3";
+            dataGridViewTextBoxColumn3.Width = 125;
             // 
             // MainForm
             // 
             ClientSize = new Size(790, 571);
+            Controls.Add(dataGridView);
             Controls.Add(btnStartSharing);
             Controls.Add(btnStopSharing);
             Controls.Add(btnStartDownload);
             Controls.Add(btnStopDownload);
             Controls.Add(btnSelectFile);
             Controls.Add(btnImport);
-            Controls.Add(lblShared);
-            Controls.Add(listSharedFiles);
-            Controls.Add(lblDownloading);
-            Controls.Add(listDownloadingFiles);
+            Controls.Add(btnCreateFileImage);
             Controls.Add(panelDownloadButtons);
             Name = "MainForm";
             Text = "Torrent";
+            ((System.ComponentModel.ISupportInitialize)dataGridView).EndInit();
             ResumeLayout(false);
         }
-    }
 
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn1;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn3;
+    }
 }
