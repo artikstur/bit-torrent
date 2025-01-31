@@ -1,3 +1,5 @@
+using MerkleTree;
+
 namespace TorrentClient;
 
 public class FileMetaData

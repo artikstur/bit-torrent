@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
+using MerkleTree;
 using TorrentClient.Extensions;
 using static TorrentClient.PackageHelper;
 
@@ -17,7 +18,6 @@ public class Client
 
     public event Action<FileMetaData>? FileStatusChanged;
     public event Action? DownloadStatusChanged;
-
 
 
     public async Task Start()
@@ -189,7 +189,6 @@ public class Client
 
     private async Task DownloadFiles(CancellationToken token)
     {
-     
         var searchPeersTask = Task.Run(async () =>
         {
             while (!token.IsCancellationRequested)
@@ -242,7 +241,10 @@ public class Client
             await RetryMissingBlocks(fileMetaData, producers);
         }
 
-        if (GetMissingBlocks(fileMetaData.Blocks).Count == 0 && fileMetaData.FileStatus == FileStatus.Downloading)
+        if (GetMissingBlocks(fileMetaData.Blocks).Count == 0 
+            && fileMetaData.FileStatus == FileStatus.Downloading
+            && BitConverter.ToString(
+                new ByteMerkleTree(fileMetaData.Blocks).Root.Hash) == fileMetaData.RootHash)
         {
             Console.WriteLine($"Загрузка завершена для файла {fileMetaData.FileName}");
             fileMetaData.FileStatus = FileStatus.Sharing;

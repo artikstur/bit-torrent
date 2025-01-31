@@ -97,7 +97,7 @@ public class ByteMerkleTree
         return currentHash.SequenceEqual(Root.Hash);
     }
     
-    public bool VerifyBlock(byte[] block, int index, List<byte[]> auditPath, byte[] roothash)
+    public bool VerifyBlock(byte[] block, int index, byte[][] auditPath, byte[] roothash)
     {
         byte[] currentHash = ComputeHash(block);
 

@@ -1,8 +1,8 @@
 ﻿using MerkleTree;
 using TorrentClient;
 
-string filePath = @"C:\Users\artur\OneDrive\Desktop\life.png";
-string torrentPath = @"C:\Users\artur\OneDrive\Desktop\test-torrent\life.png";
+string filePath = @"";
+string torrentPath = @"";
 int blockSize = 1024; // 1кб
 var blocks = FileWorker.SplitFileIntoBlocks(filePath, blockSize);
 var merkleTree = new ByteMerkleTree(blocks);
@@ -46,7 +46,7 @@ clients.Add(client2);
 
 var task = Task.Run(async () => await client1.Start());
 var tasks = clients.Select(client => Task.Run(async () => await client.Start())).ToArray();
-await Task.Delay(3000);
+await Task.Delay(1000);
 await client1.AddFile(sharingFile.RootHash, downloadingFile); 
 await client2.AddFile(sharingFile.RootHash, sharingFile);
 
